@@ -6,7 +6,8 @@ param(
 
 $apiUrl = "https://api.github.com/repos/$Repo/releases"
 $distDir = "dist"
-$exeFile = "$distDir\纲一下 Setup $Tag.Replace('v', '').exe"
+$version = $Tag.Replace('v', '')
+$exeFile = "$distDir\gang-$version.exe"
 $blockmapFile = "$exeFile.blockmap"
 
 # 检查文件是否存在
@@ -102,14 +103,14 @@ try {
     Write-Host "正在上传安装包..." -ForegroundColor Yellow
     
     # 上传 exe 文件
-    $uploadUrl = $release.upload_url -replace '\{.*\}', "?name=纲一下-Setup-$Tag.exe"
+    $uploadUrl = $release.upload_url -replace '\{.*\}', "?name=gang-$version.exe"
     $fileBytes = [System.IO.File]::ReadAllBytes($exeFile)
     $boundary = [System.Guid]::NewGuid().ToString()
     $fileEnc = [System.Text.Encoding]::GetEncoding('ISO-8859-1').GetBytes($exeFile)
     
     $bodyLines = (
         "--$boundary",
-        "Content-Disposition: form-data; name=`"file`"; filename=`"纲一下-Setup-$Tag.exe`"",
+        "Content-Disposition: form-data; name=`"file`"; filename=`"gang-$version.exe`"",
         "Content-Type: application/octet-stream",
         "",
         [System.Text.Encoding]::GetEncoding('ISO-8859-1').GetString($fileBytes),
@@ -139,11 +140,11 @@ try {
     if (Test-Path $blockmapFile) {
         Write-Host ""
         Write-Host "正在上传 blockmap 文件..." -ForegroundColor Yellow
-        $blockmapUploadUrl = $release.upload_url -replace '\{.*\}', "?name=纲一下-Setup-$Tag.exe.blockmap"
+        $blockmapUploadUrl = $release.upload_url -replace '\{.*\}', "?name=gang-$version.exe.blockmap"
         $blockmapBytes = [System.IO.File]::ReadAllBytes($blockmapFile)
         $blockmapBodyLines = (
             "--$boundary",
-            "Content-Disposition: form-data; name=`"file`"; filename=`"纲一下-Setup-$Tag.exe.blockmap`"",
+            "Content-Disposition: form-data; name=`"file`"; filename=`"gang-$version.exe.blockmap`"",
             "Content-Type: application/octet-stream",
             "",
             [System.Text.Encoding]::GetEncoding('ISO-8859-1').GetString($blockmapBytes),
