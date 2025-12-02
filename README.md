@@ -155,6 +155,50 @@ pnpm electron:dev
 - 使用 ESLint 进行代码检查
 - 遵循 React Hooks 最佳实践
 
+### 版本发布
+
+项目使用 [standard-version](https://github.com/conventional-changelog/standard-version) 进行版本管理和 CHANGELOG 生成。
+
+#### 提交规范
+
+遵循 [Conventional Commits](https://www.conventionalcommits.org/) 规范：
+
+- `feat`: 新功能
+- `fix`: 修复 bug
+- `docs`: 文档更新
+- `style`: 代码格式调整（不影响功能）
+- `refactor`: 代码重构
+- `perf`: 性能优化
+- `test`: 测试相关
+- `chore`: 构建/工具相关
+
+#### 发布命令
+
+```bash
+# 创建 beta 版本（预发布版本）
+pnpm release:beta
+
+# 创建补丁版本（1.0.0 -> 1.0.1）
+pnpm release:patch
+
+# 创建次版本（1.0.0 -> 1.1.0）
+pnpm release:minor
+
+# 创建主版本（1.0.0 -> 2.0.0）
+pnpm release:major
+```
+
+#### 发布流程
+
+1. 确保所有更改已提交到 git
+2. 运行相应的发布命令
+3. standard-version 会自动：
+   - 根据提交信息更新版本号
+   - 更新 CHANGELOG.md
+   - 创建 git tag
+   - 提交版本变更
+4. 推送到远程仓库：`git push --follow-tags origin main`
+
 ## 📄 许可证
 
 本项目仅供学习交流使用。

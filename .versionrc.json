@@ -1,0 +1,28 @@
+{
+  "types": [
+    { "type": "feat", "section": "✨ 新功能" },
+    { "type": "fix", "section": "🐛 修复" },
+    { "type": "docs", "section": "📝 文档" },
+    { "type": "style", "section": "💄 样式" },
+    { "type": "refactor", "section": "♻️ 重构" },
+    { "type": "perf", "section": "⚡️ 性能优化" },
+    { "type": "test", "section": "✅ 测试" },
+    { "type": "chore", "section": "🔧 构建/工具" }
+  ],
+  "releaseCommitMessageFormat": "chore(release): {{currentTag}}",
+  "skip": {
+    "tag": false
+  },
+  "header": "# Changelog\n\n本项目的所有重要变更都会记录在此文件中。\n\n查看 [standard-version](https://github.com/conventional-changelog/standard-version) 了解提交规范。",
+  "bumpFiles": [
+    {
+      "filename": "package.json",
+      "type": "json"
+    },
+    {
+      "filename": "package-lock.json",
+      "type": "json"
+    }
+  ]
+}
+

@@ -15,6 +15,7 @@
     "electron:dev": "concurrently \"vite\" \"electron .\"",
     "electron:build": "vite build && electron-builder",
     "release:beta": "standard-version --prerelease beta",
+    "release:beta:first": "standard-version --prerelease beta --prerelease-base 1.0.0",
     "release:patch": "standard-version --release-as patch",
     "release:minor": "standard-version --release-as minor",
     "release:major": "standard-version --release-as major"
