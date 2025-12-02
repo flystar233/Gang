@@ -61,7 +61,6 @@ export const usePlayerStore = create<PlayerState & PlayerActions>((set, get) => 
     try {
       const video = await getRandomVideo()
       if (!video || !video.cid) {
-        console.error('没有找到视频')
         set({ isLoading: false })
         return
       }
@@ -69,7 +68,6 @@ export const usePlayerStore = create<PlayerState & PlayerActions>((set, get) => 
       // 获取音频地址
       const audioUrl = await getAudioUrl(video.bvid, video.cid)
       if (!audioUrl) {
-        console.error('获取音频地址失败')
         set({ isLoading: false })
         return
       }
@@ -87,7 +85,6 @@ export const usePlayerStore = create<PlayerState & PlayerActions>((set, get) => 
       audio.play()
       set({ isPlaying: true })
     } catch (error) {
-      console.error('纲一下失败:', error)
       set({ isLoading: false })
     }
   },
@@ -97,7 +94,6 @@ export const usePlayerStore = create<PlayerState & PlayerActions>((set, get) => 
     try {
       const video = await getRandomDanKouVideo()
       if (!video || !video.cid) {
-        console.error('没有找到单口相声')
         set({ isLoading: false })
         return
       }
@@ -105,7 +101,6 @@ export const usePlayerStore = create<PlayerState & PlayerActions>((set, get) => 
       // 获取音频地址
       const audioUrl = await getAudioUrl(video.bvid, video.cid)
       if (!audioUrl) {
-        console.error('获取音频地址失败')
         set({ isLoading: false })
         return
       }
@@ -123,7 +118,6 @@ export const usePlayerStore = create<PlayerState & PlayerActions>((set, get) => 
       audio.play()
       set({ isPlaying: true })
     } catch (error) {
-      console.error('Gang单口失败:', error)
       set({ isLoading: false })
     }
   },
@@ -133,7 +127,6 @@ export const usePlayerStore = create<PlayerState & PlayerActions>((set, get) => 
     try {
       const video = await getRandomDuiKouVideo()
       if (!video || !video.cid) {
-        console.error('没有找到对口相声')
         set({ isLoading: false })
         return
       }
@@ -141,7 +134,6 @@ export const usePlayerStore = create<PlayerState & PlayerActions>((set, get) => 
       // 获取音频地址
       const audioUrl = await getAudioUrl(video.bvid, video.cid)
       if (!audioUrl) {
-        console.error('获取音频地址失败')
         set({ isLoading: false })
         return
       }
@@ -159,7 +151,6 @@ export const usePlayerStore = create<PlayerState & PlayerActions>((set, get) => 
       audio.play()
       set({ isPlaying: true })
     } catch (error) {
-      console.error('Gang对口失败:', error)
       set({ isLoading: false })
     }
   },

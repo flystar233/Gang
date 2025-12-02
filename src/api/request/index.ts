@@ -10,7 +10,6 @@ export const apiRequest = axios.create({
 apiRequest.interceptors.response.use(
   response => response.data,
   error => {
-    console.error('API 请求失败:', error)
     return Promise.reject(error)
   }
 )

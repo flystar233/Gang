@@ -16,7 +16,7 @@ function Settings() {
     setCloseAction,
   } = useSettingsStore()
   const { favorites, removeFavorite } = useFavoritesStore()
-  const { playlist, currentIndex } = usePlayerStore()
+  const { playlist } = usePlayerStore()
   const [activeTab, setActiveTab] = useState<TabType>('settings')
 
   if (!isSettingsOpen) return null

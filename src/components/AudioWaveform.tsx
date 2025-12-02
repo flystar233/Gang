@@ -25,7 +25,7 @@ function AudioWaveform({
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animationFrameRef = useRef<number | undefined>(undefined)
   const analyserRef = useRef<AnalyserNode | null>(null)
-  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
+  const timeoutRef = useRef<number | undefined>(undefined)
 
   useEffect(() => {
     if (!audioElement || !canvasRef.current) return
@@ -109,7 +109,7 @@ function AudioWaveform({
 
       draw()
     } catch (error) {
-      console.error('Failed to create audio context:', error)
+      // 静默处理音频上下文创建失败
     }
 
     return () => {

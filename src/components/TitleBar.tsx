@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useSettingsStore } from '../store/settings'
 import { getAudioElement } from '../store/player'
 import AudioWaveform from './AudioWaveform'
+import logoImage from '../assets/guodegang.svg'
 
 function TitleBar() {
   const { toggleSettings } = useSettingsStore()
@@ -45,7 +46,7 @@ function TitleBar() {
           <>
             <div className="relative w-10 h-10 flex items-end justify-center">
               <img 
-                src="/src/assets/guodegang.svg" 
+                src={logoImage} 
                 alt="logo" 
                 className="w-full h-full object-cover rounded-lg hover:scale-110 transition-transform" 
               />

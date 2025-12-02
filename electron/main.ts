@@ -3,6 +3,7 @@ import { createHmac } from 'crypto'
 import { join } from 'path'
 import { createWriteStream } from 'fs'
 import { pipeline } from 'stream/promises'
+import { existsSync } from 'fs'
 
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
@@ -126,10 +127,13 @@ function installWebRequestInterceptors() {
 
 function createTray() {
   // 创建托盘图标 - 从 src/assets 目录加载
-  const iconPath = join(__dirname, '../src/assets/guodegang.png')
+  // 打包后路径：resources/app.asar/src/assets/guodegang.png
+  // 开发时路径：src/assets/guodegang.png
+  const appPath = app.getAppPath()
+  const iconPath = join(appPath, 'src', 'assets', 'guodegang.png')
   
   let icon = nativeImage.createFromPath(iconPath)
-  if (icon.isEmpty()) {
+  if (icon.isEmpty() || !existsSync(iconPath)) {
     // 如果图标加载失败，创建一个简单的绿色图标
     const size = 16
     const buffer = Buffer.alloc(size * size * 4)
@@ -196,7 +200,32 @@ function createWindow() {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL)
     mainWindow.webContents.openDevTools({ mode: 'detach' })
   } else {
-    mainWindow.loadFile(join(__dirname, '../dist/index.html'))
+    // 打包后的路径处理
+    const appPath = app.getAppPath()
+    const indexPath = join(appPath, 'dist', 'index.html')
+    
+    // 尝试多个路径
+    const possiblePaths = [
+      indexPath,
+      join(__dirname, '../dist/index.html'),
+      join(appPath, 'index.html'),
+      join(__dirname, '../../dist/index.html'),
+    ]
+    
+    let loaded = false
+    for (const path of possiblePaths) {
+      if (existsSync(path)) {
+        mainWindow.loadFile(path)
+        loaded = true
+        break
+      }
+    }
+    
+    if (!loaded) {
+      // 最后尝试使用 URL
+      const fileUrl = `file://${join(appPath, 'dist', 'index.html')}`
+      mainWindow.loadURL(fileUrl)
+    }
   }
 }
 

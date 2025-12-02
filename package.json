@@ -47,12 +47,34 @@
   "build": {
     "appId": "com.gang-yi-xia.app",
     "productName": "纲一下",
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "src/assets",
+        "to": "src/assets",
+        "filter": ["**/*"]
+      }
+    ],
+    "directories": {
+      "output": "dist"
+    },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "artifactName": "gang-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "gang-${version}.${ext}"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "flystar233",
+      "repo": "Gang"
     }
   }
 }

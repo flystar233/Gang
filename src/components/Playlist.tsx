@@ -3,6 +3,7 @@ import { usePlayerStore } from '../store/player'
 import { useSettingsStore } from '../store/settings'
 import { useFavoritesStore } from '../store/favorites'
 import { getProxiedImageUrl } from '../api/bilibili'
+import logoImage from '../assets/guodegang.svg'
 
 // 郭德纲经典语录
 const DING_CHANG_SHI = [
@@ -26,7 +27,7 @@ function formatDuration(seconds: number): string {
 }
 
 function Playlist() {
-  const { playlist, currentIndex, removeFromPlaylist, isPlaying } = usePlayerStore()
+  const { playlist, currentIndex, removeFromPlaylist } = usePlayerStore()
   const { isFavorite, toggleFavorite } = useFavoritesStore()
   const [poem, setPoem] = useState('')
   const [downloadingIndex, setDownloadingIndex] = useState<number | null>(null)
@@ -72,7 +73,7 @@ function Playlist() {
   if (playlist.length === 0) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-white/30 px-6">
-        <img src="/src/assets/guodegang.svg" alt="logo" className="w-20 h-20 opacity-50 mb-4" />
+        <img src={logoImage} alt="logo" className="w-20 h-20 opacity-50 mb-4" />
         <p className="text-sm text-center leading-relaxed">{poem}</p>
         <p className="text-xs mt-4 text-white/20">点击 Gang！一下</p>
       </div>
