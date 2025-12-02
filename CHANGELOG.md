@@ -3,6 +3,8 @@
 本项目的所有重要变更都会记录在此文件中。
 
 查看 [standard-version](https://github.com/conventional-changelog/standard-version) 了解提交规范。
+### [1.0.1-beta.4](https://github.com/flystar233/Gang/compare/v1.0.1-beta.3...v1.0.1-beta.4) (2025-12-02)
+
 ### [1.0.1-beta.3](https://github.com/flystar233/Gang/compare/v1.0.1-beta.2...v1.0.1-beta.3) (2025-12-02)
 
 

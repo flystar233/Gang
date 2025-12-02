@@ -5,7 +5,7 @@
       "electron"
     ]
   },
-  "version": "1.0.1-beta.3",
+  "version": "1.0.1-beta.4",
   "description": "随机播放郭德纲相声的小工具",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -58,7 +58,10 @@
       "package.json"
     ],
     "asarUnpack": [],
-    "electronLanguages": ["zh-CN", "en-US"],
+    "electronLanguages": [
+      "zh-CN",
+      "en-US"
+    ],
     "directories": {
       "output": "dist"
     },
