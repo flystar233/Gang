@@ -59,23 +59,36 @@
       "src/assets/back.jpg",
       "package.json"
     ],
+    "extraResources": [
+      {
+        "from": "build/icons",
+        "to": "icons"
+      }
+    ],
     "asarUnpack": [],
     "electronLanguages": [
       "zh-CN",
       "en-US"
     ],
     "directories": {
-      "output": "dist"
+      "output": "dist",
+      "buildResources": "build"
     },
     "win": {
       "target": "nsis",
       "artifactName": "gang-${version}.${ext}",
-      "icon": "src/assets/icon.png"
+      "icon": "build/icons/win/icon.ico"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "artifactName": "gang-${version}.${ext}"
+      "artifactName": "gang-${version}.${ext}",
+      "installerIcon": "build/icons/win/icon.ico",
+      "uninstallerIcon": "build/icons/win/icon.ico",
+      "installerHeaderIcon": "build/icons/win/icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "纲一下"
     },
     "publish": {
       "provider": "github",
