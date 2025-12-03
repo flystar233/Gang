@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain, session, dialog, Tray, Menu, nativeImage } from 'electron'
+import { autoUpdater } from 'electron-updater'
 import { createHmac } from 'crypto'
 import { join } from 'path'
 import { createWriteStream } from 'fs'
@@ -9,6 +10,50 @@ let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
 
 const UserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+
+// ============ 自动更新配置 ============
+
+// 配置自动更新
+autoUpdater.autoDownload = false // 不自动下载，让用户选择
+autoUpdater.autoInstallOnAppQuit = true // 退出时自动安装
+
+// 更新事件处理
+function setupAutoUpdater() {
+  autoUpdater.on('checking-for-update', () => {
+    mainWindow?.webContents.send('update-status', { status: 'checking' })
+  })
+
+  autoUpdater.on('update-available', (info) => {
+    mainWindow?.webContents.send('update-status', { 
+      status: 'available', 
+      version: info.version,
+      releaseNotes: info.releaseNotes 
+    })
+  })
+
+  autoUpdater.on('update-not-available', () => {
+    mainWindow?.webContents.send('update-status', { status: 'not-available' })
+  })
+
+  autoUpdater.on('download-progress', (progress) => {
+    mainWindow?.webContents.send('update-status', { 
+      status: 'downloading', 
+      percent: Math.round(progress.percent) 
+    })
+  })
+
+  autoUpdater.on('update-downloaded', () => {
+    mainWindow?.webContents.send('update-status', { status: 'downloaded' })
+  })
+
+  autoUpdater.on('error', (error) => {
+    console.error('[AutoUpdater] Error:', error.message)
+    mainWindow?.webContents.send('update-status', { 
+      status: 'error', 
+      message: error.message 
+    })
+  })
+}
 
 // 存储获取到的认证信息
 let authInfo: {
@@ -249,6 +294,12 @@ app.whenReady().then(async () => {
   createTray()
   // 创建窗口
   createWindow()
+  // 设置自动更新
+  setupAutoUpdater()
+  // 启动时检查更新（延迟 3 秒）
+  setTimeout(() => {
+    autoUpdater.checkForUpdates().catch(() => {})
+  }, 3000)
 })
 
 app.on('window-all-closed', () => {
@@ -382,4 +433,36 @@ ipcMain.handle('download', async (_event, url: string, filename: string, type: s
     mainWindow?.webContents.send('download-progress', -1) // 表示错误
     return { success: false, error: String(error) }
   }
+})
+
+// ============ 更新相关 IPC ============
+
+// 检查更新
+ipcMain.handle('update:check', async () => {
+  try {
+    const result = await autoUpdater.checkForUpdates()
+    return { success: true, version: result?.updateInfo.version }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+})
+
+// 下载更新
+ipcMain.handle('update:download', async () => {
+  try {
+    await autoUpdater.downloadUpdate()
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+})
+
+// 安装更新（退出并安装）
+ipcMain.handle('update:install', () => {
+  autoUpdater.quitAndInstall(false, true)
+})
+
+// 获取当前版本
+ipcMain.handle('app:version', () => {
+  return app.getVersion()
 })

@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSettingsStore } from '@/store/settings'
 import { useFavoritesStore } from '@/store/favorites'
 import { usePlayerStore } from '@/store/player'
 import { getProxiedImageUrl } from '@/api/bilibili'
 
 type TabType = 'settings' | 'favorites'
+type UpdateState = 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'error' | 'up-to-date'
 
 function Settings() {
   const {
@@ -20,6 +21,61 @@ function Settings() {
   const { favorites, removeFavorite } = useFavoritesStore()
   const { playlist } = usePlayerStore()
   const [activeTab, setActiveTab] = useState<TabType>('settings')
+  const [currentVersion, setCurrentVersion] = useState('')
+  const [updateState, setUpdateState] = useState<UpdateState>('idle')
+  const [updateVersion, setUpdateVersion] = useState('')
+  const [downloadPercent, setDownloadPercent] = useState(0)
+  const [errorMessage, setErrorMessage] = useState('')
+
+  // 获取当前版本
+  useEffect(() => {
+    window.electronAPI?.getVersion().then(setCurrentVersion)
+  }, [])
+
+  // 监听更新状态
+  useEffect(() => {
+    const unsubscribe = window.electronAPI?.onUpdateStatus((status) => {
+      switch (status.status) {
+        case 'checking':
+          setUpdateState('checking')
+          break
+        case 'available':
+          setUpdateState('available')
+          setUpdateVersion(status.version || '')
+          break
+        case 'not-available':
+          setUpdateState('up-to-date')
+          break
+        case 'downloading':
+          setUpdateState('downloading')
+          setDownloadPercent(status.percent || 0)
+          break
+        case 'downloaded':
+          setUpdateState('downloaded')
+          break
+        case 'error':
+          setUpdateState('error')
+          setErrorMessage(status.message || '未知错误')
+          break
+      }
+    })
+    return () => unsubscribe?.()
+  }, [])
+
+  const handleCheckUpdate = async () => {
+    setUpdateState('checking')
+    setErrorMessage('')
+    await window.electronAPI?.checkForUpdate()
+  }
+
+  const handleDownloadUpdate = async () => {
+    setUpdateState('downloading')
+    await window.electronAPI?.downloadUpdate()
+  }
+
+  const handleInstallUpdate = () => {
+    window.electronAPI?.installUpdate()
+  }
 
   if (!isSettingsOpen) return null
 
@@ -199,6 +255,76 @@ function Settings() {
               {audioQuality === 'high' ? '最佳音质，文件较大' : 
                audioQuality === 'medium' ? '平衡音质与大小' : '节省流量，文件最小'}
             </p>
+          </div>
+
+          {/* 版本更新 */}
+          <div className="space-y-2">
+            <label className="text-sm text-white/60">版本更新</label>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 px-3 py-2.5 bg-white/5 rounded-lg text-sm text-white/70">
+                当前版本：v{currentVersion || '...'}
+              </div>
+              {updateState === 'idle' && (
+                <button
+                  onClick={handleCheckUpdate}
+                  className="px-4 py-2.5 bg-white/5 hover:bg-white/10 rounded-lg 
+                             text-sm text-white/70 transition-colors"
+                >
+                  检查更新
+                </button>
+              )}
+              {updateState === 'checking' && (
+                <div className="px-4 py-2.5 text-sm text-white/50">
+                  检查中...
+                </div>
+              )}
+              {updateState === 'up-to-date' && (
+                <div className="px-4 py-2.5 text-sm text-[#44965B]">
+                  已是最新
+                </div>
+              )}
+              {updateState === 'available' && (
+                <button
+                  onClick={handleDownloadUpdate}
+                  className="px-4 py-2.5 bg-[#44965B] hover:bg-[#3d8a52] rounded-lg 
+                             text-sm text-white transition-colors"
+                >
+                  下载 v{updateVersion}
+                </button>
+              )}
+              {updateState === 'downloading' && (
+                <div className="px-4 py-2.5 text-sm text-[#44965B]">
+                  下载中 {downloadPercent}%
+                </div>
+              )}
+              {updateState === 'downloaded' && (
+                <button
+                  onClick={handleInstallUpdate}
+                  className="px-4 py-2.5 bg-[#44965B] hover:bg-[#3d8a52] rounded-lg 
+                             text-sm text-white transition-colors"
+                >
+                  立即安装
+                </button>
+              )}
+              {updateState === 'error' && (
+                <button
+                  onClick={handleCheckUpdate}
+                  className="px-4 py-2.5 bg-red-500/20 hover:bg-red-500/30 rounded-lg 
+                             text-sm text-red-400 transition-colors"
+                >
+                  重试
+                </button>
+              )}
+            </div>
+            {updateState === 'error' && (
+              <p className="text-xs text-red-400/70">
+                {errorMessage.includes('404') || errorMessage.includes('No published versions') 
+                  ? '暂无可用更新（尚未发布新版本）' 
+                  : errorMessage.includes('net::') || errorMessage.includes('ENOTFOUND')
+                    ? '网络连接失败，请检查网络'
+                    : `更新失败: ${errorMessage}`}
+              </p>
+            )}
           </div>
         </div>
           ) : (
