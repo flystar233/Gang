@@ -85,25 +85,6 @@ pnpm build
 
 构建完成后，安装包会在 `dist` 目录中。
 
-## 🚀 使用说明
-
-### 基本操作
-1. **随机播放**：点击 "Gang单口" 或 "Gang对口" 按钮随机获取相声
-2. **播放控制**：使用播放/暂停、上一首/下一首按钮控制播放
-3. **收藏**：在播放列表中点击心形图标收藏喜欢的相声
-4. **下载**：在播放列表中点击下载图标保存音频
-
-### 播放模式
-- **顺序播放 (→)**：按顺序播放，播放完最后一首停止
-- **列表循环 (↻)**：循环播放整个列表
-- **单曲循环 (1)**：重复播放当前曲目
-- **自动纲一下 (∞)**：播放完自动获取新相声
-
-### 快捷键
-- 点击播放速度按钮循环切换速度
-- 点击播放模式按钮循环切换模式
-- 点击音量按钮切换静音/取消静音
-
 ## ⚙️ 设置
 
 点击右上角设置图标打开设置面板：
@@ -154,50 +135,6 @@ pnpm electron:dev
 - 使用 TypeScript 进行类型检查
 - 使用 ESLint 进行代码检查
 - 遵循 React Hooks 最佳实践
-
-### 版本发布
-
-项目使用 [standard-version](https://github.com/conventional-changelog/standard-version) 进行版本管理和 CHANGELOG 生成。
-
-#### 提交规范
-
-遵循 [Conventional Commits](https://www.conventionalcommits.org/) 规范：
-
-- `feat`: 新功能
-- `fix`: 修复 bug
-- `docs`: 文档更新
-- `style`: 代码格式调整（不影响功能）
-- `refactor`: 代码重构
-- `perf`: 性能优化
-- `test`: 测试相关
-- `chore`: 构建/工具相关
-
-#### 发布命令
-
-```bash
-# 创建 beta 版本（预发布版本）
-pnpm release:beta
-
-# 创建补丁版本（1.0.0 -> 1.0.1）
-pnpm release:patch
-
-# 创建次版本（1.0.0 -> 1.1.0）
-pnpm release:minor
-
-# 创建主版本（1.0.0 -> 2.0.0）
-pnpm release:major
-```
-
-#### 发布流程
-
-1. 确保所有更改已提交到 git
-2. 运行相应的发布命令
-3. standard-version 会自动：
-   - 根据提交信息更新版本号
-   - 更新 CHANGELOG.md
-   - 创建 git tag
-   - 提交版本变更
-4. 推送到远程仓库：`git push --follow-tags origin main`
 
 ## 📄 许可证
 
