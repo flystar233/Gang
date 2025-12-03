@@ -13,6 +13,7 @@ interface PlayerState {
   currentTime: number
   duration: number
   isLoading: boolean
+  error: string | null
 }
 
 interface PlayerActions {
@@ -28,6 +29,8 @@ interface PlayerActions {
   setCurrentTime: (time: number) => void
   setDuration: (duration: number) => void
   removeFromPlaylist: (index: number) => void
+  setError: (error: string | null) => void
+  clearError: () => void
 }
 
 const audio = new Audio()
@@ -55,9 +58,13 @@ export const usePlayerStore = create<PlayerState & PlayerActions>((set, get) => 
   currentTime: 0,
   duration: 0,
   isLoading: false,
+  error: null,
+
+  setError: (error) => set({ error }),
+  clearError: () => set({ error: null }),
 
   gangYiXia: async () => {
-    set({ isLoading: true })
+    set({ isLoading: true, error: null })
     try {
       const video = await getRandomVideo()
       if (!video || !video.cid) {
@@ -65,7 +72,6 @@ export const usePlayerStore = create<PlayerState & PlayerActions>((set, get) => 
         return
       }
 
-      // 获取音频地址
       const audioUrl = await getAudioUrl(video.bvid, video.cid)
       if (!audioUrl) {
         set({ isLoading: false })
@@ -79,18 +85,17 @@ export const usePlayerStore = create<PlayerState & PlayerActions>((set, get) => 
 
       set({ playlist: newPlaylist, currentIndex: newIndex, isLoading: false })
 
-      // 播放
       audio.src = audioUrl
       audio.playbackRate = useSettingsStore.getState().playbackRate
       audio.play()
       set({ isPlaying: true })
-    } catch (error) {
-      set({ isLoading: false })
+    } catch {
+      set({ isLoading: false, error: '网络连接失败，请检查网络' })
     }
   },
 
   gangDanKou: async () => {
-    set({ isLoading: true })
+    set({ isLoading: true, error: null })
     try {
       const video = await getRandomDanKouVideo()
       if (!video || !video.cid) {
@@ -98,7 +103,6 @@ export const usePlayerStore = create<PlayerState & PlayerActions>((set, get) => 
         return
       }
 
-      // 获取音频地址
       const audioUrl = await getAudioUrl(video.bvid, video.cid)
       if (!audioUrl) {
         set({ isLoading: false })
@@ -112,18 +116,17 @@ export const usePlayerStore = create<PlayerState & PlayerActions>((set, get) => 
 
       set({ playlist: newPlaylist, currentIndex: newIndex, isLoading: false })
 
-      // 播放
       audio.src = audioUrl
       audio.playbackRate = useSettingsStore.getState().playbackRate
       audio.play()
       set({ isPlaying: true })
-    } catch (error) {
-      set({ isLoading: false })
+    } catch {
+      set({ isLoading: false, error: '网络连接失败，请检查网络' })
     }
   },
 
   gangDuiKou: async () => {
-    set({ isLoading: true })
+    set({ isLoading: true, error: null })
     try {
       const video = await getRandomDuiKouVideo()
       if (!video || !video.cid) {
@@ -131,7 +134,6 @@ export const usePlayerStore = create<PlayerState & PlayerActions>((set, get) => 
         return
       }
 
-      // 获取音频地址
       const audioUrl = await getAudioUrl(video.bvid, video.cid)
       if (!audioUrl) {
         set({ isLoading: false })
@@ -145,13 +147,12 @@ export const usePlayerStore = create<PlayerState & PlayerActions>((set, get) => 
 
       set({ playlist: newPlaylist, currentIndex: newIndex, isLoading: false })
 
-      // 播放
       audio.src = audioUrl
       audio.playbackRate = useSettingsStore.getState().playbackRate
       audio.play()
       set({ isPlaying: true })
-    } catch (error) {
-      set({ isLoading: false })
+    } catch {
+      set({ isLoading: false, error: '网络连接失败，请检查网络' })
     }
   },
 
@@ -312,5 +313,13 @@ audio.addEventListener('pause', () => {
 
 audio.addEventListener('play', () => {
   usePlayerStore.setState({ isPlaying: true })
+})
+
+// 音频加载错误处理
+audio.addEventListener('error', () => {
+  const error = audio.error
+  if (error && error.code === MediaError.MEDIA_ERR_NETWORK) {
+    usePlayerStore.setState({ isPlaying: false, error: '网络连接失败，请检查网络' })
+  }
 })
 

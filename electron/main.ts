@@ -176,6 +176,14 @@ function createTray() {
 // ============ 窗口创建 ============
 
 function createWindow() {
+  // 加载窗口图标 - 使用正方形 PNG 格式
+  const isDev = !!process.env.VITE_DEV_SERVER_URL
+  const iconPath = isDev 
+    ? join(__dirname, '..', 'src', 'assets', 'icon.png')
+    : join(app.getAppPath(), 'src', 'assets', 'icon.png')
+  
+  const appIcon = nativeImage.createFromPath(iconPath)
+  
   mainWindow = new BrowserWindow({
     width: 420,
     height: 850,
@@ -183,6 +191,7 @@ function createWindow() {
     maximizable: false,
     frame: false,
     transparent: false,
+    icon: appIcon.isEmpty() ? undefined : appIcon,
     webPreferences: {
       preload: join(__dirname, 'preload.js'),
       nodeIntegration: false,

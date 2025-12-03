@@ -2,6 +2,7 @@ import TitleBar from './components/TitleBar'
 import Playlist from './components/Playlist'
 import PlayerControls from './components/PlayerControls'
 import Settings from './components/Settings'
+import Toast from './components/Toast'
 
 function App() {
   return (
@@ -21,6 +22,9 @@ function App() {
 
       {/* 设置面板 */}
       <Settings />
+
+      {/* Toast 提示 */}
+      <Toast />
     </div>
   )
 }

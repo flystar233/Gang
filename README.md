@@ -15,9 +15,9 @@
 </td>
 <td width="50%">
 
-**设置面板**
+**播放列表**
 
-![设置面板](./screenshots/settings.png)
+![设置面板](./screenshots/list.png)
 
 </td>
 </tr>

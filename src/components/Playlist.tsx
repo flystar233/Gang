@@ -4,6 +4,7 @@ import { useSettingsStore } from '../store/settings'
 import { useFavoritesStore } from '../store/favorites'
 import { getProxiedImageUrl } from '../api/bilibili'
 import logoImage from '../assets/guodegang.svg'
+import backImage from '../assets/back.jpg'
 
 // 郭德纲经典语录
 const DING_CHANG_SHI = [
@@ -81,7 +82,19 @@ function Playlist() {
   }
 
   return (
-    <div className="h-full overflow-y-auto space-y-1">
+    <div 
+      className="h-full overflow-y-auto space-y-1 relative rounded-lg"
+      style={{
+        backgroundImage: `url(${backImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
+      {/* 背景遮罩 */}
+      <div className="absolute inset-0 bg-[#0d0d12]/95 rounded-lg" />
+      
+      {/* 列表内容 */}
+      <div className="relative z-10 p-1">
       {playlist.map((item, index) => {
         const isActive = index === currentIndex
         const isDownloading = downloadingIndex === index
@@ -145,7 +158,7 @@ function Playlist() {
               className={`w-6 h-6 flex items-center justify-center rounded transition-all
                          ${isFavorite(item.bvid)
                            ? 'opacity-100 text-red-500'
-                           : 'opacity-0 group-hover:opacity-100 hover:bg-white/10 text-white/40 hover:text-white/70'}`}
+                           : 'opacity-0 group-hover:opacity-100 hover:bg-white/20 text-white/80 hover:text-white'}`}
               title={isFavorite(item.bvid) ? '取消收藏' : '收藏'}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill={isFavorite(item.bvid) ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
@@ -164,7 +177,7 @@ function Playlist() {
                 className={`w-6 h-6 flex items-center justify-center rounded transition-all
                            ${isDownloading 
                              ? 'opacity-100 text-[#44965B]' 
-                             : 'opacity-0 group-hover:opacity-100 hover:bg-white/10 text-white/40 hover:text-white/70'}
+                             : 'opacity-0 group-hover:opacity-100 hover:bg-white/20 text-white/80 hover:text-white'}
                            ${downloadingIndex !== null && !isDownloading ? 'cursor-not-allowed' : ''}`}
                 title={isDownloading ? `下载中 ${downloadProgress}%` : '下载'}
               >
@@ -191,7 +204,7 @@ function Playlist() {
               }}
               className="w-6 h-6 flex items-center justify-center rounded
                          opacity-0 group-hover:opacity-100 
-                         hover:bg-white/10 text-white/40 hover:text-white/70
+                         hover:bg-white/20 text-white/80 hover:text-white
                          transition-all"
               title="删除"
             >
@@ -203,6 +216,7 @@ function Playlist() {
           </div>
         )
       })}
+      </div>
     </div>
   )
 }

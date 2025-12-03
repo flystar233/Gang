@@ -55,6 +55,8 @@
       "!dist/*.yml",
       "dist-electron/**/*",
       "src/assets/guodegang.png",
+      "src/assets/icon.png",
+      "src/assets/back.jpg",
       "package.json"
     ],
     "asarUnpack": [],
@@ -67,7 +69,8 @@
     },
     "win": {
       "target": "nsis",
-      "artifactName": "gang-${version}.${ext}"
+      "artifactName": "gang-${version}.${ext}",
+      "icon": "src/assets/icon.png"
     },
     "nsis": {
       "oneClick": false,

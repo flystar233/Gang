@@ -56,69 +56,57 @@ function parseDuration(duration: string | number): number {
   return 0
 }
 
-// 搜索相声视频
+// 搜索相声视频（网络错误会向上抛出）
 async function searchVideos(keyword: string, page = 1): Promise<VideoItem[]> {
-  try {
-    // 先尝试 30-60 分钟时长
-    let res = await apiRequest.get<SearchResponse>('/x/web-interface/search/type', {
-      params: { keyword, search_type: 'video', order: 'totalrank', duration: 3, page, page_size: 20 },
+  // 先尝试 30-60 分钟时长
+  let res = await apiRequest.get<SearchResponse>('/x/web-interface/search/type', {
+    params: { keyword, search_type: 'video', order: 'totalrank', duration: 3, page, page_size: 20 },
+  })
+
+  let data = res as unknown as SearchResponse
+  if (data.code !== 0 || !data.data?.result) {
+    // 不限制时长重试
+    res = await apiRequest.get<SearchResponse>('/x/web-interface/search/type', {
+      params: { keyword, search_type: 'video', order: 'totalrank', page, page_size: 20 },
     })
-
-    let data = res as unknown as SearchResponse
-    if (data.code !== 0 || !data.data?.result) {
-      // 不限制时长重试
-      res = await apiRequest.get<SearchResponse>('/x/web-interface/search/type', {
-        params: { keyword, search_type: 'video', order: 'totalrank', page, page_size: 20 },
-      })
-      data = res as unknown as SearchResponse
-      if (data.code !== 0 || !data.data?.result) return []
-    }
-
-    return data.data.result.map(item => ({
-      bvid: item.bvid,
-      title: item.title?.replace(/<[^>]+>/g, '') || '',
-      pic: item.pic?.startsWith('//') ? `https:${item.pic}` : item.pic,
-      duration: parseDuration(item.duration),
-    }))
-  } catch {
-    return []
+    data = res as unknown as SearchResponse
+    if (data.code !== 0 || !data.data?.result) return []
   }
+
+  return data.data.result.map(item => ({
+    bvid: item.bvid,
+    title: item.title?.replace(/<[^>]+>/g, '') || '',
+    pic: item.pic?.startsWith('//') ? `https:${item.pic}` : item.pic,
+    duration: parseDuration(item.duration),
+  }))
 }
 
-// 获取视频详情
+// 获取视频详情（网络错误会向上抛出）
 export async function getVideoInfo(bvid: string): Promise<VideoInfoResponse['data'] | null> {
-  try {
-    const res = await apiRequest.get<VideoInfoResponse>('/x/web-interface/view', { params: { bvid } })
-    const data = res as unknown as VideoInfoResponse
-    return data.code === 0 ? data.data || null : null
-  } catch {
-    return null
-  }
+  const res = await apiRequest.get<VideoInfoResponse>('/x/web-interface/view', { params: { bvid } })
+  const data = res as unknown as VideoInfoResponse
+  return data.code === 0 ? data.data || null : null
 }
 
-// 获取音频播放地址
+// 获取音频播放地址（网络错误会向上抛出）
 export async function getAudioUrl(bvid: string, cid: number): Promise<string | null> {
-  try {
-    const res = await apiRequest.get<PlayUrlResponse>('/x/player/playurl', {
-      params: { bvid, cid, fnval: 16, qn: 64, platform: 'html5', high_quality: 1 },
-    })
+  const res = await apiRequest.get<PlayUrlResponse>('/x/player/playurl', {
+    params: { bvid, cid, fnval: 16, qn: 64, platform: 'html5', high_quality: 1 },
+  })
 
-    const data = res as unknown as PlayUrlResponse
-    if (data.code !== 0) return null
+  const data = res as unknown as PlayUrlResponse
+  if (data.code !== 0) return null
 
-    // 优先 dash 格式
-    const audioList = data.data?.dash?.audio || []
-    if (audioList.length > 0) {
-      const sorted = audioList.sort((a, b) => b.bandwidth - a.bandwidth)
-      return sorted[0]?.baseUrl || sorted[0]?.base_url || null
-    }
-
-    // 降级 durl
-    if (data.data?.durl?.[0]) return data.data.durl[0].url
-    return null
-  } catch {
-    return null
+  // 优先 dash 格式
+  const audioList = data.data?.dash?.audio || []
+  if (audioList.length > 0) {
+    const sorted = audioList.sort((a, b) => b.bandwidth - a.bandwidth)
+    return sorted[0]?.baseUrl || sorted[0]?.base_url || null
   }
+
+  // 降级 durl
+  if (data.data?.durl?.[0]) return data.data.durl[0].url
+  return null
 }
 
 // 已播放过的视频，避免重复
