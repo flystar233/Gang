@@ -97,22 +97,30 @@ pnpm build
 
 ```
 gang-yi-xia/
-├── electron/          # Electron 主进程代码
-│   ├── main.ts       # 主进程入口
-│   └── preload.ts    # 预加载脚本
+├── electron/              # Electron 主进程代码
+│   ├── main.ts           # 主进程入口
+│   └── preload.ts        # 预加载脚本
 ├── src/
-│   ├── api/          # API 接口
-│   │   └── bilibili.ts
-│   ├── components/   # React 组件
-│   │   ├── PlayerControls.tsx
-│   │   ├── Playlist.tsx
-│   │   ├── Settings.tsx
-│   │   └── ...
-│   ├── store/        # 状态管理
-│   │   ├── player.ts
-│   │   ├── settings.ts
-│   │   └── favorites.ts
-│   └── App.tsx       # 应用入口
+│   ├── api/              # API 接口
+│   │   ├── bilibili.ts   # B站 API 封装
+│   │   └── request/      # 请求工具
+│   ├── assets/           # 静态资源
+│   │   ├── back.jpg      # 播放列表背景图
+│   │   ├── icon.png      # 应用图标
+│   │   └── guodegang.png # Logo
+│   ├── components/       # React 组件
+│   │   ├── AudioWaveform.tsx   # 音频波形可视化
+│   │   ├── PlayerControls.tsx  # 播放控制
+│   │   ├── Playlist.tsx        # 播放列表
+│   │   ├── Settings.tsx        # 设置面板
+│   │   ├── TitleBar.tsx        # 标题栏
+│   │   └── Toast.tsx           # 提示消息
+│   ├── store/            # 状态管理
+│   │   ├── player.ts     # 播放器状态
+│   │   ├── settings.ts   # 设置状态
+│   │   └── favorites.ts  # 收藏状态
+│   ├── App.tsx           # 应用入口
+│   └── index.css         # 全局样式
 ├── package.json
 └── vite.config.ts
 ```
