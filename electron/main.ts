@@ -292,17 +292,27 @@ ipcMain.handle('selectFolder', async () => {
 })
 
 // 下载音频/视频
-ipcMain.handle('download', async (_event, url: string, filename: string, type: string = 'audio', savePath?: string) => {
+ipcMain.handle('download', async (_event, url: string, filename: string, type: string = 'audio', savePath?: string, subFolder?: string) => {
   if (!mainWindow) return { success: false, error: '窗口未初始化' }
 
   try {
     const ext = type === 'video' ? '.mp4' : '.m4a'
     const safeName = filename.replace(/[<>:"/\\|?*]/g, '_') + ext
+    const safeFolder = subFolder?.replace(/[<>:"/\\|?*]/g, '_')
     let filePath: string
 
     if (savePath) {
       // 使用默认路径
-      filePath = join(savePath, safeName)
+      let targetDir = savePath
+      if (safeFolder) {
+        targetDir = join(savePath, safeFolder)
+        // 确保子文件夹存在
+        const { mkdirSync, existsSync } = await import('fs')
+        if (!existsSync(targetDir)) {
+          mkdirSync(targetDir, { recursive: true })
+        }
+      }
+      filePath = join(targetDir, safeName)
     } else {
       // 弹出保存对话框
       const filters = type === 'video' 

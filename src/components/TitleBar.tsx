@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { useSettingsStore } from '../store/settings'
-import { getAudioElement } from '../store/player'
-import AudioWaveform from './AudioWaveform'
-import logoImage from '../assets/guodegang.svg'
+import { useSettingsStore } from '@/store/settings'
+import { getAudioElement } from '@/store/player'
+import AudioWaveform from '@/components/AudioWaveform'
+import logoImage from '@/assets/guodegang.svg'
 
 function TitleBar() {
   const { toggleSettings } = useSettingsStore()

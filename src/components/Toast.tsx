@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from 'react'
-import { usePlayerStore } from '../store/player'
+import { usePlayerStore } from '@/store/player'
 
 function Toast() {
   const { error, clearError } = usePlayerStore()

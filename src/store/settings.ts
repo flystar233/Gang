@@ -7,6 +7,9 @@ export type PlayMode = 'sequence' | 'loop' | 'single' | 'auto'
 // 关闭行为
 export type CloseAction = 'quit' | 'hide'
 
+// 音频品质
+export type AudioQuality = 'high' | 'medium' | 'low'
+
 interface SettingsState {
   // 自定义搜索关键词
   customKeywords: string[]
@@ -26,6 +29,8 @@ interface SettingsState {
   downloadPath: string
   // 关闭行为
   closeAction: CloseAction
+  // 音频品质
+  audioQuality: AudioQuality
 }
 
 interface SettingsActions {
@@ -43,6 +48,7 @@ interface SettingsActions {
   toggleSettings: () => void
   setDownloadPath: (path: string) => void
   setCloseAction: (action: CloseAction) => void
+  setAudioQuality: (quality: AudioQuality) => void
 }
 
 // 默认关键词
@@ -71,6 +77,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
       isSettingsOpen: false,
       downloadPath: '',
       closeAction: 'quit',
+      audioQuality: 'high',
 
       setCustomKeywords: (keywords) => set({ customKeywords: keywords }),
       
@@ -131,6 +138,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
 
       setDownloadPath: (path) => set({ downloadPath: path }),
       setCloseAction: (action) => set({ closeAction: action }),
+      setAudioQuality: (quality) => set({ audioQuality: quality }),
     }),
     {
       name: 'gang-yi-xia-settings',
@@ -143,6 +151,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
         playbackRate: state.playbackRate,
         downloadPath: state.downloadPath,
         closeAction: state.closeAction,
+        audioQuality: state.audioQuality,
       }),
     }
   )

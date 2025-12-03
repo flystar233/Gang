@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { type VideoItem } from '../api/bilibili'
+import { type VideoItem } from '@/api/bilibili'
 
 export interface FavoriteItem extends VideoItem {
   audioUrl?: string

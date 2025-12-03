@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
-import { usePlayerStore } from '../store/player'
-import { useSettingsStore } from '../store/settings'
-import { useFavoritesStore } from '../store/favorites'
-import { getProxiedImageUrl } from '../api/bilibili'
-import logoImage from '../assets/guodegang.svg'
-import backImage from '../assets/back.jpg'
+import { usePlayerStore } from '@/store/player'
+import { useSettingsStore } from '@/store/settings'
+import { useFavoritesStore } from '@/store/favorites'
+import { getProxiedImageUrl, getAudioUrl } from '@/api/bilibili'
+import logoImage from '@/assets/guodegang.svg'
+import backImage from '@/assets/back.jpg'
 
 // 郭德纲经典语录
 const DING_CHANG_SHI = [
@@ -28,11 +28,13 @@ function formatDuration(seconds: number): string {
 }
 
 function Playlist() {
-  const { playlist, currentIndex, removeFromPlaylist } = usePlayerStore()
+  const { playlist, currentIndex, removeFromPlaylist, playPage } = usePlayerStore()
   const { isFavorite, toggleFavorite } = useFavoritesStore()
   const [poem, setPoem] = useState('')
   const [downloadingIndex, setDownloadingIndex] = useState<number | null>(null)
   const [downloadProgress, setDownloadProgress] = useState(0)
+  const [downloadingPage, setDownloadingPage] = useState<{ current: number; total: number } | null>(null)
+  const [expandedCollections, setExpandedCollections] = useState<Set<number>>(new Set())
 
   useEffect(() => {
     if (playlist.length === 0) {
@@ -44,31 +46,68 @@ function Playlist() {
   useEffect(() => {
     const unsubscribe = window.electronAPI?.onDownloadProgress((progress) => {
       setDownloadProgress(progress)
-      if (progress >= 100 || progress < 0) {
-        // 下载完成或出错，延迟重置状态
-        setTimeout(() => {
-          setDownloadingIndex(null)
-          setDownloadProgress(0)
-        }, 500)
-      }
     })
     return () => unsubscribe?.()
   }, [])
 
-  const handleDownload = async (index: number, audioUrl: string, title: string) => {
-    if (downloadingIndex !== null) return // 防止重复下载
+  // 下载单个音频
+  const downloadSingleAudio = async (audioUrl: string, title: string, subFolder?: string): Promise<boolean> => {
+    const { downloadPath } = useSettingsStore.getState()
+    const result = await window.electronAPI?.download(
+      audioUrl, 
+      title, 
+      'audio',
+      downloadPath || undefined,
+      subFolder
+    )
+    return result?.success ?? false
+  }
+
+  // 处理下载（支持合集批量下载）
+  const handleDownload = async (index: number, item: typeof playlist[0]) => {
+    if (downloadingIndex !== null) return
     
     setDownloadingIndex(index)
     setDownloadProgress(0)
     
-    const { downloadPath } = useSettingsStore.getState()
+    const isCollection = item.pages && item.pages.length > 1
     
-    await window.electronAPI?.download(
-      audioUrl, 
-      title, 
-      'audio',
-      downloadPath || undefined
-    )
+    if (isCollection && item.pages) {
+      // 合集：依次下载所有分P到以合集标题命名的文件夹
+      const total = item.pages.length
+      const folderName = item.title // 合集文件夹名称
+      
+      for (let i = 0; i < total; i++) {
+        const page = item.pages[i]
+        setDownloadingPage({ current: i + 1, total })
+        setDownloadProgress(0)
+        
+        // 获取分P的音频URL（应用当前音质设置）
+        const audioInfo = await getAudioUrl(page.bvid, page.cid!)
+        if (!audioInfo) continue
+        
+        // 下载文件，文件名格式：P序号_分P标题
+        const fileName = `P${String(i + 1).padStart(2, '0')}_${page.title}`
+        await downloadSingleAudio(audioInfo.url, fileName, folderName)
+      }
+      
+      setDownloadingPage(null)
+    } else if (item.cid) {
+      // 单个视频：重新获取音频URL以应用当前音质设置
+      const audioInfo = await getAudioUrl(item.bvid, item.cid)
+      if (audioInfo) {
+        await downloadSingleAudio(audioInfo.url, item.title)
+      }
+    } else if (item.audioUrl) {
+      // 回退：使用现有的 audioUrl（老视频不支持音质选择）
+      await downloadSingleAudio(item.audioUrl, item.title)
+    }
+    
+    // 延迟重置状态
+    setTimeout(() => {
+      setDownloadingIndex(null)
+      setDownloadProgress(0)
+    }, 500)
   }
 
   if (playlist.length === 0) {
@@ -82,41 +121,50 @@ function Playlist() {
   }
 
   return (
-    <div 
-      className="h-full overflow-y-auto space-y-1 relative rounded-lg"
-      style={{
-        backgroundImage: `url(${backImage})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }}
-    >
-      {/* 背景遮罩 */}
+    <div className="h-full relative rounded-lg overflow-hidden">
+      {/* 背景图片 - 固定定位，不随滚动移动 */}
+      <div 
+        className="absolute inset-0 rounded-lg"
+        style={{
+          backgroundImage: `url(${backImage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      />
+      
+      {/* 背景遮罩 - 固定定位，覆盖整个区域 */}
       <div className="absolute inset-0 bg-[#0d0d12]/95 rounded-lg" />
       
-      {/* 列表内容 */}
-      <div className="relative z-10 p-1">
+      {/* 列表内容 - 可滚动 */}
+      <div className="relative z-10 h-full overflow-y-auto space-y-1 p-1">
       {playlist.map((item, index) => {
         const isActive = index === currentIndex
         const isDownloading = downloadingIndex === index
+        const isCollection = !!item.pages && item.pages.length > 1
+        const isExpanded = expandedCollections.has(index)
         
         return (
-          <div
-            key={`${item.bvid}-${index}`}
-            className={`group flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors relative
-                        ${isActive ? 'bg-white/10' : 'hover:bg-white/5'}`}
-            onClick={() => {
-              if (!isActive) {
-                usePlayerStore.setState({ currentIndex: index })
-                usePlayerStore.getState().play()
-              }
-            }}
-          >
+          <div key={`${item.bvid}-${index}`}>
+            <div
+              className={`group flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors relative
+                          ${isActive ? 'bg-white/10' : 'hover:bg-white/5'}`}
+              onClick={() => {
+                if (!isActive) {
+                  usePlayerStore.setState({ currentIndex: index })
+                  usePlayerStore.getState().play()
+                }
+              }}
+            >
             {/* 下载进度条 */}
             {isDownloading && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/10 rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-[#44965B] transition-all duration-200"
-                  style={{ width: `${downloadProgress}%` }}
+                  style={{ 
+                    width: downloadingPage 
+                      ? `${((downloadingPage.current - 1 + downloadProgress / 100) / downloadingPage.total) * 100}%`
+                      : `${downloadProgress}%` 
+                  }}
                 />
               </div>
             )}
@@ -145,7 +193,16 @@ function Playlist() {
                 {item.title}
               </p>
               <p className={`mt-0.5 ${isDownloading ? 'text-sm text-[#44965B] font-medium' : 'text-xs text-white/30'}`}>
-                {isDownloading ? `下载中 ${downloadProgress}%` : formatDuration(item.duration)}
+                {isDownloading 
+                  ? (downloadingPage 
+                      ? `下载中 ${downloadingPage.current}/${downloadingPage.total} (${downloadProgress}%)` 
+                      : `下载中 ${downloadProgress}%`)
+                  : (
+                    <>
+                      {formatDuration(item.duration)}
+                      {isActive && item.audioBitrate ? ` · ${item.audioBitrate}kbps` : ''}
+                    </>
+                  )}
               </p>
             </div>
 
@@ -167,11 +224,11 @@ function Playlist() {
             </button>
 
             {/* 下载按钮 */}
-            {item.audioUrl && (
+            {(item.audioUrl || isCollection) && (
               <button
                 onClick={(e) => {
                   e.stopPropagation()
-                  handleDownload(index, item.audioUrl!, item.title)
+                  handleDownload(index, item)
                 }}
                 disabled={downloadingIndex !== null}
                 className={`w-6 h-6 flex items-center justify-center rounded transition-all
@@ -179,7 +236,9 @@ function Playlist() {
                              ? 'opacity-100 text-[#44965B]' 
                              : 'opacity-0 group-hover:opacity-100 hover:bg-white/20 text-white/80 hover:text-white'}
                            ${downloadingIndex !== null && !isDownloading ? 'cursor-not-allowed' : ''}`}
-                title={isDownloading ? `下载中 ${downloadProgress}%` : '下载'}
+                title={isDownloading 
+                  ? (downloadingPage ? `下载中 ${downloadingPage.current}/${downloadingPage.total}` : `下载中 ${downloadProgress}%`)
+                  : (isCollection ? `下载合集 (${item.pages?.length} 个)` : '下载')}
               >
                 {isDownloading ? (
                   <svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -193,6 +252,39 @@ function Playlist() {
                     <line x1="12" y1="15" x2="12" y2="3" />
                   </svg>
                 )}
+              </button>
+            )}
+
+            {/* 合集按钮 */}
+            {isCollection && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  const newExpanded = new Set(expandedCollections)
+                  if (isExpanded) {
+                    newExpanded.delete(index)
+                  } else {
+                    newExpanded.add(index)
+                  }
+                  setExpandedCollections(newExpanded)
+                }}
+                className="w-6 h-6 flex items-center justify-center rounded
+                           opacity-0 group-hover:opacity-100 
+                           hover:bg-white/20 text-white/80 hover:text-white
+                           transition-all"
+                title={`合集 (${item.pages?.length} 个分P)`}
+              >
+                <svg 
+                  width="12" 
+                  height="12" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2"
+                  className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
               </button>
             )}
 
@@ -214,6 +306,33 @@ function Playlist() {
               </svg>
             </button>
           </div>
+
+          {/* 合集分P列表 */}
+          {isCollection && isExpanded && item.pages && (
+            <div className="ml-4 mt-1 space-y-1 border-l-2 border-white/10 pl-3">
+              {item.pages.map((page, pageIndex) => {
+                const isPageActive = isActive && item.cid === page.cid
+                return (
+                  <div
+                    key={`${page.bvid}-${page.cid}`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      playPage(index, pageIndex)
+                    }}
+                    className={`flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer transition-colors text-sm
+                              ${isPageActive 
+                                ? 'bg-[#44965B]/20 text-[#44965B]' 
+                                : 'hover:bg-white/5 text-white/60 hover:text-white/80'}`}
+                  >
+                    <span className="text-xs text-white/40 w-6">{pageIndex + 1}</span>
+                    <span className="flex-1 truncate">{page.title}</span>
+                    <span className="text-xs text-white/30">{formatDuration(page.duration)}</span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
         )
       })}
       </div>

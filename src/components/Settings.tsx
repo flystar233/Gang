@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { useSettingsStore } from '../store/settings'
-import { useFavoritesStore } from '../store/favorites'
-import { usePlayerStore } from '../store/player'
-import { getProxiedImageUrl } from '../api/bilibili'
+import { useSettingsStore } from '@/store/settings'
+import { useFavoritesStore } from '@/store/favorites'
+import { usePlayerStore } from '@/store/player'
+import { getProxiedImageUrl } from '@/api/bilibili'
 
 type TabType = 'settings' | 'favorites'
 
@@ -14,6 +14,8 @@ function Settings() {
     setDownloadPath,
     closeAction,
     setCloseAction,
+    audioQuality,
+    setAudioQuality,
   } = useSettingsStore()
   const { favorites, removeFavorite } = useFavoritesStore()
   const { playlist } = usePlayerStore()
@@ -160,6 +162,44 @@ function Settings() {
               </button>
             )}
           </div>
+
+          {/* 音频品质 */}
+          <div className="space-y-2">
+            <label className="text-sm text-white/60">音频品质</label>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setAudioQuality('high')}
+                className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors
+                           ${audioQuality === 'high' 
+                             ? 'bg-[#44965B] text-white' 
+                             : 'bg-white/5 text-white/50 hover:bg-white/10'}`}
+              >
+                高 192k
+              </button>
+              <button
+                onClick={() => setAudioQuality('medium')}
+                className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors
+                           ${audioQuality === 'medium' 
+                             ? 'bg-[#44965B] text-white' 
+                             : 'bg-white/5 text-white/50 hover:bg-white/10'}`}
+              >
+                中 132k
+              </button>
+              <button
+                onClick={() => setAudioQuality('low')}
+                className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors
+                           ${audioQuality === 'low' 
+                             ? 'bg-[#44965B] text-white' 
+                             : 'bg-white/5 text-white/50 hover:bg-white/10'}`}
+              >
+                低 64k
+              </button>
+            </div>
+            <p className="text-xs text-white/30">
+              {audioQuality === 'high' ? '最佳音质，文件较大' : 
+               audioQuality === 'medium' ? '平衡音质与大小' : '节省流量，文件最小'}
+            </p>
+          </div>
         </div>
           ) : (
             <div className="p-4 space-y-2">
@@ -175,7 +215,8 @@ function Settings() {
                 favorites.map((favorite) => (
                   <div
                     key={favorite.bvid}
-                    className="group flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors"
+                    onClick={() => handlePlayFavorite(favorite)}
+                    className="group flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
                   >
                     {/* 封面 */}
                     <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0 bg-white/5">
@@ -198,21 +239,11 @@ function Settings() {
 
                     {/* 操作按钮 */}
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {favorite.audioUrl && (
-                        <button
-                          onClick={() => handlePlayFavorite(favorite)}
-                          className="w-8 h-8 flex items-center justify-center rounded-lg
-                                     hover:bg-white/10 text-white/50 hover:text-white/80
-                                     transition-colors"
-                          title="播放"
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M8 5v14l11-7L8 5z" />
-                          </svg>
-                        </button>
-                      )}
                       <button
-                        onClick={() => removeFavorite(favorite.bvid)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          removeFavorite(favorite.bvid)
+                        }}
                         className="w-8 h-8 flex items-center justify-center rounded-lg
                                    hover:bg-white/10 text-white/50 hover:text-[#44965B]
                                    transition-colors"

@@ -1,8 +1,8 @@
-import TitleBar from './components/TitleBar'
-import Playlist from './components/Playlist'
-import PlayerControls from './components/PlayerControls'
-import Settings from './components/Settings'
-import Toast from './components/Toast'
+import TitleBar from '@/components/TitleBar'
+import Playlist from '@/components/Playlist'
+import PlayerControls from '@/components/PlayerControls'
+import Settings from '@/components/Settings'
+import Toast from '@/components/Toast'
 
 function App() {
   return (

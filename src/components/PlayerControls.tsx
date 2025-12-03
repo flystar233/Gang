@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { usePlayerStore } from '../store/player'
-import { useSettingsStore, type PlayMode } from '../store/settings'
+import { usePlayerStore } from '@/store/player'
+import { useSettingsStore, type PlayMode } from '@/store/settings'
 
 
 function formatTime(seconds: number): string {
