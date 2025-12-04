@@ -53,7 +53,7 @@ function App() {
           <div 
             className="absolute -top-8 -right-10 origin-top transition-transform duration-500 ease-out"
             style={{
-              transform: isPlaying ? 'rotate(24deg)' : 'rotate(-20deg)',
+              transform: isPlaying ? 'rotate(24deg)' : 'rotate(-5deg)',
             }}
           >
             {/* 底座外圈 */}
