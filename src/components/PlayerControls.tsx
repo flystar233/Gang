@@ -2,6 +2,9 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { usePlayerStore } from '@/store/player'
 import { useSettingsStore, type PlayMode } from '@/store/settings'
 
+interface PlayerControlsProps {
+  onOpenPlaylist?: () => void
+}
 
 function formatTime(seconds: number): string {
   if (!seconds || seconds <= 0) return '0:00'
@@ -24,9 +27,9 @@ const playModeLabels: Record<PlayMode, string> = {
   auto: '自动',
 }
 
-function PlayerControls() {
+function PlayerControls({ onOpenPlaylist }: PlayerControlsProps) {
   const { isPlaying, togglePlay, next, prev, currentTime, duration, playlist, currentIndex, seek, gangDanKou, gangDuiKou, isLoading } = usePlayerStore()
-  const { volume, setVolume, playMode, cyclePlayMode, playbackRate, cyclePlaybackRate, isMuted, toggleMute } = useSettingsStore()
+  const { volume, setVolume, playMode, cyclePlayMode, isMuted, toggleMute } = useSettingsStore()
   const [isDragging, setIsDragging] = useState(false)
   const [dragProgress, setDragProgress] = useState(0)
   const [showVolume, setShowVolume] = useState(false)
@@ -73,7 +76,7 @@ function PlayerControls() {
   }, [isDragging, handleMouseMove, handleMouseUp])
 
   return (
-    <div className="bg-white/5 rounded-xl p-4 space-y-3">
+    <div className="bg-white/5 rounded-xl p-5 space-y-4">
       {/* 标题 */}
       <p className="text-sm text-white/80 text-center truncate px-2">
         {currentItem?.title || '暂无播放'}
@@ -103,16 +106,16 @@ function PlayerControls() {
       </div>
 
       {/* Gang 按钮行 - Pill Outline 风格 */}
-      <div className="grid grid-cols-2 gap-4 px-2">
+      <div className="grid grid-cols-2 gap-4 px-2 pt-2">
         <button
           onClick={gangDanKou}
           disabled={isLoading}
-          className="group flex items-center justify-center gap-1.5 py-2.5 rounded-full
+          className="group flex items-center justify-center gap-1.5 py-3 rounded-full
                      border border-white/20 hover:border-[#44965B] hover:bg-[#44965B]/10
                      disabled:opacity-50 disabled:cursor-not-allowed
                      transition-all duration-300 select-none active:scale-95"
         >
-          <span className="text-xs font-medium text-white/70 group-hover:text-[#44965B] transition-colors duration-300">Gang</span>
+          <span className="text-sm font-medium text-white/70 group-hover:text-[#44965B] transition-colors duration-300">Gang</span>
           <svg className="w-4 h-4 text-white/60 group-hover:text-[#44965B] transition-colors duration-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
             <circle cx="12" cy="7" r="4" />
@@ -122,12 +125,12 @@ function PlayerControls() {
         <button
           onClick={gangDuiKou}
           disabled={isLoading}
-          className="group flex items-center justify-center gap-1.5 py-2.5 rounded-full
+          className="group flex items-center justify-center gap-1.5 py-3 rounded-full
                      border border-white/20 hover:border-[#44965B] hover:bg-[#44965B]/10
                      disabled:opacity-50 disabled:cursor-not-allowed
                      transition-all duration-300 select-none active:scale-95"
         >
-          <span className="text-xs font-medium text-white/70 group-hover:text-[#44965B] transition-colors duration-300">Gang</span>
+          <span className="text-sm font-medium text-white/70 group-hover:text-[#44965B] transition-colors duration-300">Gang</span>
           <svg className="w-4 h-4 text-white/60 group-hover:text-[#44965B] transition-colors duration-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
             <circle cx="9" cy="7" r="4" />
@@ -138,7 +141,7 @@ function PlayerControls() {
       </div>
 
       {/* 控制 */}
-      <div className="flex items-center justify-between relative">
+      <div className="flex items-center justify-between relative pt-2">
         {/* 左侧：音量 */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <div 
@@ -234,18 +237,8 @@ function PlayerControls() {
           </button>
         </div>
 
-        {/* 右侧：播放速度 + 播放模式 */}
+        {/* 右侧：播放模式 + 播放列表 */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          {/* 播放速度 */}
-          <button 
-            onClick={cyclePlaybackRate}
-            className="w-10 h-10 flex items-center justify-center rounded-lg
-                       text-white/50 hover:text-white/80 hover:bg-white/5 text-xs font-medium"
-            title={`播放速度: ${playbackRate}x`}
-          >
-            {playbackRate}x
-          </button>
-
           {/* 播放模式 */}
           <button
             onClick={cyclePlayMode}
@@ -254,6 +247,23 @@ function PlayerControls() {
             title={playModeLabels[playMode]}
           >
             {playModeIcons[playMode]}
+          </button>
+
+          {/* 播放列表 */}
+          <button 
+            onClick={onOpenPlaylist}
+            className="w-10 h-10 flex items-center justify-center rounded-lg
+                       text-white/50 hover:text-white/80 hover:bg-white/5"
+            title="播放列表"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="8" y1="6" x2="21" y2="6" />
+              <line x1="8" y1="12" x2="21" y2="12" />
+              <line x1="8" y1="18" x2="21" y2="18" />
+              <line x1="3" y1="6" x2="3.01" y2="6" />
+              <line x1="3" y1="12" x2="3.01" y2="12" />
+              <line x1="3" y1="18" x2="3.01" y2="18" />
+            </svg>
           </button>
         </div>
       </div>

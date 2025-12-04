@@ -4,7 +4,6 @@ import { useSettingsStore } from '@/store/settings'
 import { useFavoritesStore } from '@/store/favorites'
 import { getProxiedImageUrl, getAudioUrl } from '@/api/bilibili'
 import logoImage from '@/assets/guodegang.svg'
-import backImage from '@/assets/back.jpg'
 
 // 郭德纲经典语录
 const DING_CHANG_SHI = [
@@ -115,28 +114,12 @@ function Playlist() {
       <div className="h-full flex flex-col items-center justify-center text-white/30 px-6">
         <img src={logoImage} alt="logo" className="w-20 h-20 opacity-50 mb-4" />
         <p className="text-sm text-center leading-relaxed">{poem}</p>
-        <p className="text-xs mt-4 text-white/20">点击 Gang！一下</p>
       </div>
     )
   }
 
   return (
-    <div className="h-full relative rounded-lg overflow-hidden">
-      {/* 背景图片 - 固定定位，不随滚动移动 */}
-      <div 
-        className="absolute inset-0 rounded-lg"
-        style={{
-          backgroundImage: `url(${backImage})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
-      />
-      
-      {/* 背景遮罩 - 固定定位，覆盖整个区域 */}
-      <div className="absolute inset-0 bg-[#0d0d12]/95 rounded-lg" />
-      
-      {/* 列表内容 - 可滚动 */}
-      <div className="relative z-10 h-full overflow-y-auto space-y-1 p-1">
+    <div className="h-full overflow-y-auto space-y-1 p-1">
       {playlist.map((item, index) => {
         const isActive = index === currentIndex
         const isDownloading = downloadingIndex === index
@@ -335,7 +318,6 @@ function Playlist() {
         </div>
         )
       })}
-      </div>
     </div>
   )
 }

@@ -1,20 +1,12 @@
-# 统一行尾符为 LF（Unix 风格）
+# 统一使用 LF 行尾符号
 * text=auto eol=lf
 
-# 明确指定某些文件类型
-*.ts text eol=lf
-*.tsx text eol=lf
-*.js text eol=lf
-*.jsx text eol=lf
-*.json text eol=lf
-*.md text eol=lf
-*.html text eol=lf
-*.css text eol=lf
-*.scss text eol=lf
-*.yml text eol=lf
-*.yaml text eol=lf
-*.sh text eol=lf
-*.ps1 text eol=lf
+# Windows 批处理文件保持 CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# PowerShell 脚本保持 CRLF
+*.ps1 text eol=crlf
 
 # 二进制文件
 *.png binary
@@ -22,24 +14,6 @@
 *.jpeg binary
 *.gif binary
 *.ico binary
-*.svg binary
-*.woff binary
-*.woff2 binary
-*.ttf binary
-*.eot binary
 *.exe binary
 *.dll binary
-*.so binary
-*.dylib binary
-
-# 归档文件
-*.zip binary
-*.tar binary
-*.gz binary
-*.7z binary
-*.rar binary
-
-# 其他
-*.lock text eol=lf
-*.log text eol=lf
-
+*.asar binary
