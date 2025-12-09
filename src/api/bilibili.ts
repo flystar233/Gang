@@ -11,7 +11,6 @@ import {
 } from '@/types'
 import {
   AUDIO_URL_CACHE_SIZE,
-  BILIBILI_SITE_URL,
   DANKOU_KEYWORDS,
   DUIKOU_KEYWORDS,
   IMAGE_PROXY_PARAMS,
@@ -35,42 +34,61 @@ export async function proxyAudioUrl(url: string): Promise<string> {
     (typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent))
   
   if (isTauri) {
-    try {
-      const { invoke } = await import('@tauri-apps/api/core')
-      
-      // 使用代理服务器 URL（支持流式播放和 Range 请求）
-      const proxyUrl = await invoke<string>('proxy_audio', { url })
-      
-      // 缓存代理 URL（LRU自动管理大小）
-      audioUrlCache.set(url, proxyUrl)
-      
-      return proxyUrl
-    } catch (invokeError: any) {
-      console.error('[Audio Proxy] Tauri 代理失败:', invokeError)
-      // 降级到直接返回原 URL（可能会失败，但至少尝试）
-      return url
-    }
-  }
-  
-  // 非 Tauri 环境，尝试直接 fetch
-  try {
-    const response = await fetch(url, {
-      headers: {
-        'Referer': BILIBILI_SITE_URL,
-        'Origin': BILIBILI_SITE_URL,
-      }
-    })
+    const isAndroid = typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent)
     
-    if (response.ok) {
-      const blob = await response.blob()
-      const blobUrl = URL.createObjectURL(blob)
-      audioUrlCache.set(url, blobUrl)
-      return blobUrl
+    // Android 平台：先确保代理服务器已启动
+    if (isAndroid) {
+      try {
+        const { invoke } = await import('@tauri-apps/api/core')
+        // 尝试启动代理服务器（如果还没启动）
+        await invoke<number>('start_proxy_server').catch(() => {
+          // 忽略错误，可能已经启动了
+        })
+      } catch {
+        // 忽略错误
+      }
     }
-  } catch {
-    // 忽略 fetch 错误
+    
+    // 重试机制：Android 上可能需要等待代理服务器启动
+    let retries = isAndroid ? 3 : 1
+    let lastError: any = null
+    
+    while (retries > 0) {
+      try {
+        const { invoke } = await import('@tauri-apps/api/core')
+        
+        // 使用代理服务器 URL（支持流式播放和 Range 请求）
+        const proxyUrl = await invoke<string>('proxy_audio', { url })
+        
+        // 验证代理 URL 是否有效
+        if (!proxyUrl || (!proxyUrl.startsWith('http://127.0.0.1:') && !proxyUrl.startsWith('http://localhost:'))) {
+          throw new Error('代理 URL 无效')
+        }
+        
+        // 缓存代理 URL（LRU自动管理大小）
+        audioUrlCache.set(url, proxyUrl)
+        
+        return proxyUrl
+      } catch (invokeError: any) {
+        lastError = invokeError
+        console.error(`[Audio Proxy] Tauri 代理失败 (剩余重试: ${retries - 1}):`, invokeError)
+        
+        retries--
+        if (retries > 0 && isAndroid) {
+          // Android 上等待一段时间后重试（给代理服务器启动时间）
+          await new Promise(resolve => setTimeout(resolve, 500))
+          continue
+        }
+        
+        // Android 上代理失败时，抛出错误而不是降级（因为原 URL 会有 CORS 问题）
+        if (isAndroid) {
+          throw new Error(`代理服务器启动失败: ${lastError?.message || '未知错误'}`)
+        }
+        // 非 Android 平台降级到原 URL
+        return url
+      }
+    }
   }
-  
   return url
 }
 

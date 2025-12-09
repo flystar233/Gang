@@ -4,6 +4,7 @@ import { useSettingsStore, type PlayMode } from '@/store/settings'
 import { useFavoritesStore } from '@/store/favorites'
 import { isAndroid } from '@/utils/platform'
 import { formatTime } from '@/utils/format'
+import { GangTypeIcon } from '@/components/icons/GangTypeIcon'
 
 // 检测是否是Windows平台
 const isWindows = typeof navigator !== 'undefined' && /win/i.test(navigator.platform)
@@ -102,9 +103,21 @@ function PlayerControls({ onOpenPlaylist, gangType: _externalGangType, onGangTyp
     setDragProgress(calcProgress(e.clientX))
   }
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (duration <= 0) return
+    setIsDragging(true)
+    setDragProgress(calcProgress(e.touches[0].clientX))
+  }
+
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging) return
     setDragProgress(calcProgress(e.clientX))
+  }, [isDragging, calcProgress])
+
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    if (!isDragging) return
+    setDragProgress(calcProgress(e.touches[0].clientX))
+    e.preventDefault()
   }, [isDragging, calcProgress])
 
   const handleMouseUp = useCallback((e: MouseEvent) => {
@@ -113,16 +126,27 @@ function PlayerControls({ onOpenPlaylist, gangType: _externalGangType, onGangTyp
     seek((calcProgress(e.clientX) / 100) * duration)
   }, [isDragging, calcProgress, duration, seek])
 
+  const handleTouchEnd = useCallback((e: TouchEvent) => {
+    if (!isDragging) return
+    setIsDragging(false)
+    const touch = e.changedTouches[0] || e.touches[0]
+    seek((calcProgress(touch.clientX) / 100) * duration)
+  }, [isDragging, calcProgress, duration, seek])
+
   useEffect(() => {
     if (isDragging) {
       window.addEventListener('mousemove', handleMouseMove)
       window.addEventListener('mouseup', handleMouseUp)
+      window.addEventListener('touchmove', handleTouchMove, { passive: false })
+      window.addEventListener('touchend', handleTouchEnd)
       return () => {
         window.removeEventListener('mousemove', handleMouseMove)
         window.removeEventListener('mouseup', handleMouseUp)
+        window.removeEventListener('touchmove', handleTouchMove)
+        window.removeEventListener('touchend', handleTouchEnd)
       }
     }
-  }, [isDragging, handleMouseMove, handleMouseUp])
+  }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd])
 
   useEffect(() => {
     const handleVolumeMouseMove = (e: MouseEvent) => {
@@ -168,6 +192,7 @@ function PlayerControls({ onOpenPlaylist, gangType: _externalGangType, onGangTyp
           ref={progressRef}
           className="relative h-1.5 bg-white/10 rounded-full cursor-pointer group"
           onMouseDown={handleMouseDown}
+          onTouchStart={handleTouchStart}
         >
           <div
             className="absolute inset-y-0 left-0 bg-[#44965B] rounded-full"
@@ -208,15 +233,16 @@ function PlayerControls({ onOpenPlaylist, gangType: _externalGangType, onGangTyp
             }}
           />
           
-          {/* 左边 - 单 */}
+          {/* 左边 - 单口图标 */}
           <div
             className="relative z-10 w-1/2 flex items-center justify-center h-full transition-all duration-300"
           >
-            <span className={`text-lg font-semibold text-gray-900 select-none transition-all duration-300 ${
-              isWindows ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'
-            }`}>
-              单
-            </span>
+            <GangTypeIcon 
+              type="dan" 
+              className={`w-6 h-6 text-gray-900 select-none transition-all duration-300 ${
+                isWindows ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'
+              }`}
+            />
           </div>
           
           {/* 中间分割线 - 真实胶囊分割效果 */}
@@ -229,15 +255,16 @@ function PlayerControls({ onOpenPlaylist, gangType: _externalGangType, onGangTyp
             <div className="absolute inset-y-0 right-0 w-[2px] bg-gradient-to-l from-white/25 to-transparent" />
           </div>
           
-          {/* 右边 - 对 */}
+          {/* 右边 - 对口图标 */}
           <div
             className="relative z-10 w-1/2 flex items-center justify-center h-full transition-all duration-300"
           >
-            <span className={`text-lg font-semibold text-white select-none transition-all duration-300 ${
-              isWindows ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'
-            }`}>
-              对
-            </span>
+            <GangTypeIcon 
+              type="dui" 
+              className={`w-6 h-6 text-white select-none transition-all duration-300 ${
+                isWindows ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'
+              }`}
+            />
           </div>
         </div>
       </div>

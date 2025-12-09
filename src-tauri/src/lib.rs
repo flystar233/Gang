@@ -20,6 +20,9 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init());
     
+    // Android 平台：代理服务器会在首次调用 proxy_audio 时自动启动
+    // 不需要预启动，避免 Tokio runtime 初始化问题
+    
     #[cfg(desktop)]
     let builder = {
         let builder = builder.manage(CloseActionState::new());
