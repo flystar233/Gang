@@ -1,0 +1,57 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/schema.json",
+  "productName": "纲一下",
+  "version": "1.0.1-beta.4",
+  "identifier": "com.gang-yi-xia.app",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "beforeBuildCommand": "pnpm build:web",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "纲一下",
+        "width": 420,
+        "height": 850,
+        "resizable": false,
+        "maximizable": false,
+        "fullscreen": false,
+        "decorations": false,
+        "transparent": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https: http://127.0.0.1:* http://localhost:*; connect-src 'self' https: http: ws: wss: http://127.0.0.1:* http://localhost:*; img-src 'self' data: blob: https:; media-src 'self' blob: data: https: http://127.0.0.1:* http://localhost:*; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'",
+      "capabilities": ["main-window-capability"]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": [
+      "../build/icons/win/icon.ico"
+    ],
+    "resources": [],
+    "externalBin": [],
+    "copyright": "",
+    "category": "Entertainment",
+    "shortDescription": "随机播放郭德纲相声的小工具",
+    "longDescription": "随机播放郭德纲相声的小工具",
+    "android": {
+      "minSdkVersion": 24,
+      "versionCode": 1
+    },
+    "macOS": {
+      "frameworks": [],
+      "minimumSystemVersion": "10.13",
+      "exceptionDomain": ""
+    },
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": ""
+    }
+  }
+}

@@ -1,0 +1,38 @@
+[package]
+name = "gang-yi-xia"
+version = "1.0.1-beta.4"
+description = "随机播放郭德纲相声的小工具"
+authors = ["you"]
+license = ""
+repository = ""
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[build-dependencies]
+tauri-build = { version = "2.0", features = [] }
+
+[dependencies]
+tauri = { version = "2.0", features = ["tray-icon"] }
+tauri-plugin-shell = { version = "2.0" }
+tauri-plugin-dialog = { version = "2.0" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+reqwest = { version = "0.11", default-features = false, features = ["stream", "cookies", "rustls-tls"] }
+tokio = { version = "1", features = ["full"] }
+futures = "0.3"
+lazy_static = "1.4"
+base64 = "0.22"
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors"] }
+urlencoding = "2.1"
+
+[lib]
+name = "gang_yi_xia"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[features]
+# This feature is used for production builds or when `devPath` points to the filesystem
+custom-protocol = ["tauri/custom-protocol"]
+

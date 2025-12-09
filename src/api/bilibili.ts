@@ -1,68 +1,81 @@
 import { apiRequest } from '@/api/request'
-import { getAllKeywords, useSettingsStore, type AudioQuality } from '@/store/settings'
+import { getAllKeywords, useSettingsStore } from '@/store/settings'
+import { checkTauriEnv } from '@/utils/platform'
+import { LRUCache } from '@/utils/cache'
+import {
+  type VideoItem,
+  type AudioInfo,
+  type SearchResponse,
+  type VideoInfoResponse,
+  type PlayUrlResponse,
+} from '@/types'
+import {
+  AUDIO_URL_CACHE_SIZE,
+  BILIBILI_SITE_URL,
+  DANKOU_KEYWORDS,
+  DUIKOU_KEYWORDS,
+  IMAGE_PROXY_PARAMS,
+  PLAYED_VIDEOS_CACHE_SIZE,
+} from '@/constants'
+import type { AudioQuality } from '@/types'
+import { parseDuration, processImageUrl, stripHtmlTags } from '@/utils/video'
 
-export interface VideoItem {
-  bvid: string
-  title: string
-  pic: string
-  duration: number
-  cid?: number
-}
+const audioUrlCache = new LRUCache<string, string>(AUDIO_URL_CACHE_SIZE)
 
-interface SearchResponse {
-  code: number
-  data?: {
-    result?: Array<{
-      bvid: string
-      title: string
-      pic: string
-      duration: string | number
-    }>
+export async function proxyAudioUrl(url: string): Promise<string> {
+  // 检查缓存
+  const cached = audioUrlCache.get(url)
+  if (cached) {
+    return cached
   }
-}
-
-interface VideoPage {
-  cid: number
-  page: number
-  part: string
-  duration: number
-}
-
-interface VideoInfoResponse {
-  code: number
-  data?: {
-    bvid: string
-    cid: number
-    title: string
-    pic: string
-    duration: number
-    pages?: VideoPage[]
-  }
-}
-
-interface PlayUrlResponse {
-  code: number
-  data?: {
-    dash?: {
-      audio: Array<{
-        baseUrl: string
-        base_url: string
-        bandwidth: number
-      }>
+  
+  // 移动端 Tauri 有时 checkTauriEnv 可能返回 false，这里用 UA 兜底
+  const isTauri =
+    checkTauriEnv() ||
+    (typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent))
+  
+  if (isTauri) {
+    try {
+      const { invoke } = await import('@tauri-apps/api/core')
+      
+      // 使用代理服务器 URL（支持流式播放和 Range 请求）
+      const proxyUrl = await invoke<string>('proxy_audio', { url })
+      
+      // 缓存代理 URL（LRU自动管理大小）
+      audioUrlCache.set(url, proxyUrl)
+      
+      return proxyUrl
+    } catch (invokeError: any) {
+      console.error('[Audio Proxy] Tauri 代理失败:', invokeError)
+      // 降级到直接返回原 URL（可能会失败，但至少尝试）
+      return url
     }
-    durl?: Array<{ url: string }>
   }
+  
+  // 非 Tauri 环境，尝试直接 fetch
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'Referer': BILIBILI_SITE_URL,
+        'Origin': BILIBILI_SITE_URL,
+      }
+    })
+    
+    if (response.ok) {
+      const blob = await response.blob()
+      const blobUrl = URL.createObjectURL(blob)
+      audioUrlCache.set(url, blobUrl)
+      return blobUrl
+    }
+  } catch {
+    // 忽略 fetch 错误
+  }
+  
+  return url
 }
 
-// 解析时长字符串 "10:30" -> 秒数
-function parseDuration(duration: string | number): number {
-  if (typeof duration === 'number') return duration
-  if (!duration) return 0
-  const parts = duration.split(':').map(Number)
-  if (parts.length === 2) return parts[0] * 60 + parts[1]
-  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2]
-  return 0
-}
+// 类型定义已移至 @/types
+// parseDuration 函数已移至 @/utils/video
 
 // 搜索相声视频（网络错误会向上抛出）
 async function searchVideos(keyword: string, page = 1): Promise<VideoItem[]> {
@@ -83,8 +96,8 @@ async function searchVideos(keyword: string, page = 1): Promise<VideoItem[]> {
 
   return data.data.result.map(item => ({
     bvid: item.bvid,
-    title: item.title?.replace(/<[^>]+>/g, '') || '',
-    pic: item.pic?.startsWith('//') ? `https:${item.pic}` : item.pic,
+    title: stripHtmlTags(item.title || ''),
+    pic: processImageUrl(item.pic || '', ''),
     duration: parseDuration(item.duration),
   }))
 }
@@ -117,11 +130,7 @@ export async function getCollectionVideos(bvid: string): Promise<{ mainTitle: st
   }
 }
 
-// 音频信息（URL + 码率）
-export interface AudioInfo {
-  url: string
-  bitrate: number // kbps
-}
+// AudioInfo 类型已移至 @/types
 
 // 根据品质设置选择音频
 function selectAudioByQuality(
@@ -172,13 +181,23 @@ export async function getAudioUrl(bvid: string, cid: number): Promise<AudioInfo 
   const audioList = data.data?.dash?.audio || []
   if (audioList.length > 0) {
     const { audioQuality } = useSettingsStore.getState()
-    return selectAudioByQuality(audioList, audioQuality)
+    const selected = selectAudioByQuality(audioList, audioQuality)
+    if (selected) {
+      // 代理音频 URL（解决 CORS 问题）
+      const proxiedUrl = await proxyAudioUrl(selected.url)
+      return {
+        url: proxiedUrl,
+        bitrate: selected.bitrate,
+      }
+    }
   }
 
   // 降级 durl（老视频，不支持音质选择）
   if (data.data?.durl?.[0]) {
+    // 代理音频 URL（解决 CORS 问题）
+    const proxiedUrl = await proxyAudioUrl(data.data.durl[0].url)
     return {
-      url: data.data.durl[0].url,
+      url: proxiedUrl,
       bitrate: 0, // durl 格式无法获取音频码率
     }
   }
@@ -188,6 +207,14 @@ export async function getAudioUrl(bvid: string, cid: number): Promise<AudioInfo 
 
 // 已播放过的视频，避免重复
 const playedVideos = new Set<string>()
+
+// 清理播放历史（保持缓存大小）
+function cleanupPlayedVideos() {
+  if (playedVideos.size > PLAYED_VIDEOS_CACHE_SIZE) {
+    const toRemove = Array.from(playedVideos).slice(0, playedVideos.size - PLAYED_VIDEOS_CACHE_SIZE)
+    toRemove.forEach(bvid => playedVideos.delete(bvid))
+  }
+}
 
 // 随机获取一个相声视频（通用函数）
 // 如果是合集，返回带 pages 属性的对象；否则返回单个视频
@@ -208,10 +235,7 @@ async function getRandomVideoByKeywords(keywords: string[]): Promise<VideoItem |
       const info = await getVideoInfo(video.bvid)
       if (info) {
         playedVideos.add(info.bvid)
-        if (playedVideos.size > 100) {
-          const first = playedVideos.values().next().value
-          if (first) playedVideos.delete(first)
-        }
+        cleanupPlayedVideos()
         
         // 检查是否是合集
         const collection = await getCollectionVideos(info.bvid)
@@ -272,31 +296,15 @@ export async function getRandomVideo(): Promise<VideoItem | (VideoItem & { pages
 
 // 随机获取一个单口相声视频（可能是单个或合集）
 export async function getRandomDanKouVideo(): Promise<VideoItem | (VideoItem & { pages: VideoItem[] }) | null> {
-  const keywords = [
-    '郭德纲 单口相声',
-    '郭德纲 单口',
-    '郭德纲 德云社 单口相声',
-    '郭德纲 评书',
-    '郭德纲 单口相声 完整版',
-  ]
-  return getRandomVideoByKeywords(keywords)
+  return getRandomVideoByKeywords([...DANKOU_KEYWORDS])
 }
 
 // 随机获取一个对口相声视频（可能是单个或合集）
 export async function getRandomDuiKouVideo(): Promise<VideoItem | (VideoItem & { pages: VideoItem[] }) | null> {
-  const keywords = [
-    '郭德纲 于谦 相声',
-    '郭德纲 德云社 对口相声',
-    '郭德纲 于谦 对口',
-    '于谦 郭德纲 相声',
-    '郭德纲 对口相声 完整版',
-  ]
-  return getRandomVideoByKeywords(keywords)
+  return getRandomVideoByKeywords([...DUIKOU_KEYWORDS])
 }
 
-// 处理图片 URL
+// 处理图片 URL（使用工具函数）
 export function getProxiedImageUrl(url: string): string {
-  if (!url) return ''
-  const imageUrl = url.startsWith('//') ? `https:${url}` : url
-  return `${imageUrl}@300w_300h_1c.webp`
+  return processImageUrl(url, IMAGE_PROXY_PARAMS)
 }

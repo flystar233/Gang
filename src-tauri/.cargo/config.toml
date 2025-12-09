@@ -1,0 +1,58 @@
+# Cargo 国内镜像源配置
+# 参考: https://www.cnblogs.com/JosiahBristow/articles/18695607
+
+[source.crates-io]
+registry = "https://github.com/rust-lang/crates.io-index"
+# 指定镜像（切到中科大）
+replace-with = 'ustc'
+
+# 清华大学镜像（备用）
+[source.tuna]
+registry = "https://mirrors.tuna.tsinghua.edu.cn/git/crates.io-index.git"
+
+# 上海交通大学镜像（备用）
+[source.sjtu]
+registry = "https://mirrors.sjtug.sjtu.edu.cn/git/crates.io-index/"
+
+# 中国科学技术大学镜像（当前使用）
+[source.ustc]
+registry = "https://mirrors.ustc.edu.cn/crates.io-index"
+
+
+# 其他可用镜像源（如需切换，修改上面的 replace-with 值）：
+# 
+# 上海交通大学
+# [source.sjtu]
+# registry = "https://mirrors.sjtug.sjtu.edu.cn/git/crates.io-index/"
+# 
+# 清华大学
+# [source.tuna]
+# registry = "https://mirrors.tuna.tsinghua.edu.cn/git/crates.io-index.git"
+# 
+# rustcc社区
+# [source.rustcc]
+# registry = "https://code.aliyun.com/rustcc/crates.io-index.git"
+
+# Android 交叉编译配置
+# 注意：需要设置 NDK_HOME 环境变量指向 Android NDK 目录
+# 或者安装 cargo-ndk: cargo install cargo-ndk
+# 
+# 如果手动配置，请取消下面的注释并替换 <NDK_HOME> 为实际的 NDK 路径
+# 例如：C:\Users\YourName\AppData\Local\Android\Sdk\ndk\26.1.10909125
+# 
+[target.x86_64-linux-android]
+linker = "E:/Android/Sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/windows-x86_64/bin/x86_64-linux-android30-clang.cmd"
+ar = "E:/Android/Sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/windows-x86_64/bin/llvm-ar.cmd"
+
+[target.aarch64-linux-android]
+linker = "E:/Android/Sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/windows-x86_64/bin/aarch64-linux-android30-clang.cmd"
+ar = "E:/Android/Sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/windows-x86_64/bin/llvm-ar.cmd"
+
+[target.armv7-linux-androideabi]
+linker = "E:/Android/Sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/windows-x86_64/bin/armv7a-linux-androideabi30-clang.cmd"
+ar = "E:/Android/Sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/windows-x86_64/bin/llvm-ar.cmd"
+
+[target.i686-linux-android]
+linker = "E:/Android/Sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/windows-x86_64/bin/i686-linux-android30-clang.cmd"
+ar = "E:/Android/Sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/windows-x86_64/bin/llvm-ar.cmd"
+

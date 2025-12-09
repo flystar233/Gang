@@ -5,6 +5,12 @@ pnpm-lock.yaml
 # Build outputs
 dist/
 dist-electron/
+build/
+
+# Tauri
+src-tauri/gen/
+src-tauri/target/
+src-tauri/Cargo.lock
 
 # Environment variables
 .env
@@ -27,4 +33,5 @@ npm-debug.log*
 # Temporary files
 *.tmp
 *.temp
+assets/
 

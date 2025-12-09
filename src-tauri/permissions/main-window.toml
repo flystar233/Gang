@@ -1,0 +1,18 @@
+[[permission]]
+identifier = "main-window"
+description = "Main window permissions for the application"
+
+commands.allow = [
+    "minimize_window",
+    "close_window",
+    "hide_window",
+    "select_folder",
+    "download_file",
+    "get_app_version",
+    "check_for_update",
+    "download_update",
+    "install_update",
+    "http_request",
+    "proxy_audio",
+    "start_proxy_server"
+]

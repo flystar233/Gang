@@ -3,9 +3,10 @@ import { usePlayerStore } from '@/store/player'
 import { useSettingsStore } from '@/store/settings'
 import { useFavoritesStore } from '@/store/favorites'
 import { getProxiedImageUrl, getAudioUrl } from '@/api/bilibili'
+import { platformAPI } from '@/utils/platform'
+import { formatDuration } from '@/utils/format'
 import logoImage from '@/assets/guodegang.svg'
 
-// 郭德纲经典语录
 const DING_CHANG_SHI = [
   '床前明月光，疑是地上霜，举头望明月，我叫郭德纲',
   '江山父老能容我，不使人间造孽钱',
@@ -18,13 +19,6 @@ const DING_CHANG_SHI = [
   '心中有事天地小，心中无事一床宽',
   '万事留一线，江湖好相见',
 ]
-
-function formatDuration(seconds: number): string {
-  if (!seconds || seconds <= 0) return '--:--'
-  const mins = Math.floor(seconds / 60)
-  const secs = Math.floor(seconds % 60)
-  return `${mins}:${secs.toString().padStart(2, '0')}`
-}
 
 function Playlist() {
   const { playlist, currentIndex, removeFromPlaylist, playPage } = usePlayerStore()
@@ -43,23 +37,23 @@ function Playlist() {
 
   // 监听下载进度
   useEffect(() => {
-    const unsubscribe = window.electronAPI?.onDownloadProgress((progress) => {
+    const unsubscribe = platformAPI.onDownloadProgress((progress) => {
       setDownloadProgress(progress)
     })
-    return () => unsubscribe?.()
+    return () => unsubscribe()
   }, [])
 
   // 下载单个音频
   const downloadSingleAudio = async (audioUrl: string, title: string, subFolder?: string): Promise<boolean> => {
     const { downloadPath } = useSettingsStore.getState()
-    const result = await window.electronAPI?.download(
+    const result = await platformAPI.download(
       audioUrl, 
       title, 
       'audio',
       downloadPath || undefined,
       subFolder
     )
-    return result?.success ?? false
+    return result.success
   }
 
   // 处理下载（支持合集批量下载）
@@ -138,7 +132,6 @@ function Playlist() {
                 }
               }}
             >
-            {/* 下载进度条 */}
             {isDownloading && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/10 rounded-full overflow-hidden">
                 <div 
@@ -152,7 +145,6 @@ function Playlist() {
               </div>
             )}
 
-            {/* 封面 */}
             <div className="relative w-10 h-10 rounded-md overflow-hidden flex-shrink-0 bg-white/5">
               <img
                 src={getProxiedImageUrl(item.pic)}

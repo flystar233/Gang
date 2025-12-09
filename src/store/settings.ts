@@ -1,20 +1,21 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import type { PlayMode, CloseAction, AudioQuality, GangType } from '@/types'
+import { DEFAULT_KEYWORDS, PLAY_MODES, PLAYBACK_RATES } from '@/constants'
+import { platformAPI, isTauri } from '@/utils/platform'
 
-// 播放模式
-export type PlayMode = 'sequence' | 'loop' | 'single' | 'auto'
-
-// 关闭行为
-export type CloseAction = 'quit' | 'hide'
-
-// 音频品质
-export type AudioQuality = 'high' | 'medium' | 'low'
+// 重新导出类型以便向后兼容
+export type { PlayMode, CloseAction, AudioQuality }
 
 interface SettingsState {
   // 自定义搜索关键词
   customKeywords: string[]
   // 播放模式
   playMode: PlayMode
+  // Gang 类型（单口/对口）
+  gangType: GangType
+  // 睡眠定时到期时间（时间戳，毫秒）
+  sleepTimerDeadline: number | null
   // 音量 (0-1)
   volume: number
   // 静音前的音量，用于恢复
@@ -38,6 +39,8 @@ interface SettingsActions {
   addKeyword: (keyword: string) => void
   removeKeyword: (keyword: string) => void
   setPlayMode: (mode: PlayMode) => void
+  setGangType: (type: GangType) => void
+  setSleepTimer: (minutes: number | null) => void
   cyclePlayMode: () => void
   setVolume: (volume: number) => void
   toggleMute: () => void
@@ -51,25 +54,15 @@ interface SettingsActions {
   setAudioQuality: (quality: AudioQuality) => void
 }
 
-// 默认关键词
-export const DEFAULT_KEYWORDS = [
-  '郭德纲 于谦 相声',
-  '德云社 相声',
-  '郭德纲 相声 完整版',
-  '于谦 郭德纲',
-  '德云社 郭德纲',
-  '郭德纲 单口相声',
-  '郭德纲 经典相声',
-]
-
-// 播放模式顺序
-const PLAY_MODES: PlayMode[] = ['sequence', 'loop', 'single', 'auto']
+// 常量已移至 @/constants
 
 export const useSettingsStore = create<SettingsState & SettingsActions>()(
   persist(
     (set, get) => ({
       customKeywords: [],
       playMode: 'auto',
+      gangType: 'dan',
+      sleepTimerDeadline: null,
       volume: 0.8,
       previousVolume: 0.8,
       isMuted: false,
@@ -94,6 +87,15 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
       },
       
       setPlayMode: (mode) => set({ playMode: mode }),
+      setGangType: (type) => set({ gangType: type }),
+      setSleepTimer: (minutes) => {
+        if (minutes === null) {
+          set({ sleepTimerDeadline: null })
+        } else {
+          const deadline = Date.now() + minutes * 60 * 1000
+          set({ sleepTimerDeadline: deadline })
+        }
+      },
       
       cyclePlayMode: () => {
         const { playMode } = get()
@@ -126,7 +128,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
       
       cyclePlaybackRate: () => {
         const { playbackRate } = get()
-        const rates = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
+        const rates = [...PLAYBACK_RATES] as number[]
         const currentIndex = rates.indexOf(playbackRate)
         const nextIndex = (currentIndex + 1) % rates.length
         set({ playbackRate: rates[nextIndex] })
@@ -137,7 +139,15 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
       toggleSettings: () => set(state => ({ isSettingsOpen: !state.isSettingsOpen })),
 
       setDownloadPath: (path) => set({ downloadPath: path }),
-      setCloseAction: (action) => set({ closeAction: action }),
+      setCloseAction: (action) => {
+        set({ closeAction: action })
+        // 同步到后端（仅 Tauri 桌面端）
+        if (isTauri && platformAPI.setCloseAction) {
+          platformAPI.setCloseAction(action).catch(() => {
+            // 忽略错误
+          })
+        }
+      },
       setAudioQuality: (quality) => set({ audioQuality: quality }),
     }),
     {
@@ -145,6 +155,8 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
       partialize: (state) => ({
         customKeywords: state.customKeywords,
         playMode: state.playMode,
+        gangType: state.gangType,
+        sleepTimerDeadline: state.sleepTimerDeadline,
         volume: state.volume,
         previousVolume: state.previousVolume,
         isMuted: state.isMuted,
@@ -160,5 +172,5 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
 // 获取所有关键词（自定义 + 默认）
 export function getAllKeywords(): string[] {
   const { customKeywords } = useSettingsStore.getState()
-  return customKeywords.length > 0 ? customKeywords : DEFAULT_KEYWORDS
+  return customKeywords.length > 0 ? customKeywords : [...DEFAULT_KEYWORDS]
 }

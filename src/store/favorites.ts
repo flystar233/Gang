@@ -1,11 +1,9 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { type VideoItem } from '@/api/bilibili'
+import type { FavoriteItem, VideoItem } from '@/types'
 
-export interface FavoriteItem extends VideoItem {
-  audioUrl?: string
-  addedAt: number // 添加时间戳
-}
+// 重新导出类型以便向后兼容
+export type { FavoriteItem }
 
 interface FavoritesState {
   favorites: FavoriteItem[]

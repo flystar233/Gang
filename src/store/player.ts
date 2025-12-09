@@ -1,12 +1,8 @@
 import { create } from 'zustand'
-import { getRandomVideo, getRandomDanKouVideo, getRandomDuiKouVideo, getAudioUrl, type VideoItem } from '@/api/bilibili'
+import { getRandomVideo, getRandomDanKouVideo, getRandomDuiKouVideo, getAudioUrl } from '@/api/bilibili'
 import { useSettingsStore } from '@/store/settings'
-
-interface PlayItem extends VideoItem {
-  audioUrl?: string
-  audioBitrate?: number // 音频码率 kbps
-  pages?: VideoItem[]
-}
+import type { PlayItem, VideoItem } from '@/types'
+import { isCollection } from '@/utils/video'
 
 interface PlayerState {
   isPlaying: boolean
@@ -53,13 +49,20 @@ useSettingsStore.subscribe(syncAudioSettings)
 
 // 播放指定URL的音频
 const playAudio = (url: string) => {
+  if (!url) return
+  
   audio.src = url
   audio.playbackRate = useSettingsStore.getState().playbackRate
-  audio.play()
+  
+  audio.play().catch((error) => {
+    usePlayerStore.setState({ 
+      isPlaying: false, 
+      error: `播放失败: ${error.message || '未知错误'}` 
+    })
+  })
 }
 
-// 检查是否为合集
-const isCollection = (item: PlayItem) => item.pages && item.pages.length > 1
+// isCollection 函数已移至 @/utils/video
 
 // 处理视频结果，获取音频URL并返回PlayItem
 type VideoResult = VideoItem | VideoItem[] | (VideoItem & { pages?: VideoItem[] })
@@ -100,7 +103,7 @@ const processVideoResult = async (result: VideoResult): Promise<PlayItem | null>
 }
 
 export const usePlayerStore = create<PlayerState & PlayerActions>((set, get) => {
-  // 通用的获取视频并播放函数
+  // 通用的获取视频并播放函数（优化：提前显示标题）
   const fetchAndPlay = async (fetchFn: () => Promise<VideoResult | null>) => {
     set({ isLoading: true, error: null })
     try {
@@ -110,22 +113,51 @@ export const usePlayerStore = create<PlayerState & PlayerActions>((set, get) => 
         return
       }
       
+      // 先创建临时项（不包含 audioUrl），立即显示标题
+      const { playlist } = get()
+      const newIndex = playlist.length
+      
+      // 根据 result 类型创建临时项
+      let tempItem: PlayItem
+      if (Array.isArray(result)) {
+        tempItem = { ...result[0], audioUrl: undefined, pages: result }
+      } else if ('pages' in result && result.pages) {
+        tempItem = { ...result, audioUrl: undefined }
+      } else {
+        tempItem = { ...result, audioUrl: undefined }
+      }
+      
+      const tempPlaylist = [...playlist, tempItem]
+      
+      // 立即更新 UI，显示标题
+      set({
+        playlist: tempPlaylist,
+        currentIndex: newIndex,
+        isLoading: true, // 保持加载状态，等待音频
+      })
+      
+      // 异步处理音频（不阻塞 UI）
       const newItem = await processVideoResult(result)
       if (!newItem) {
-        set({ isLoading: false })
+        set({ isLoading: false, error: '无法获取音频地址' })
         return
       }
 
-      const { playlist } = get()
+      // 更新播放列表，添加音频 URL
+      const finalPlaylist = [...tempPlaylist]
+      finalPlaylist[newIndex] = newItem
+      
       set({
-        playlist: [...playlist, newItem],
-        currentIndex: playlist.length,
+        playlist: finalPlaylist,
         isLoading: false,
         isPlaying: true,
       })
+      
+      // 立即开始播放
       playAudio(newItem.audioUrl!)
-    } catch {
-      set({ isLoading: false, error: '网络连接失败，请检查网络' })
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '网络连接失败，请检查网络'
+      set({ isLoading: false, error: errorMessage })
     }
   }
 
@@ -257,6 +289,23 @@ audio.addEventListener('loadedmetadata', () => {
   usePlayerStore.getState().setDuration(audio.duration)
 })
 
+// 睡眠定时监听：到期后暂停并清空定时
+let sleepWatcherStarted = false
+const startSleepWatcher = () => {
+  if (sleepWatcherStarted) return
+  sleepWatcherStarted = true
+  setInterval(() => {
+    const { sleepTimerDeadline, setSleepTimer } = useSettingsStore.getState()
+    if (!sleepTimerDeadline) return
+    if (Date.now() >= sleepTimerDeadline) {
+      audio.pause()
+      usePlayerStore.setState({ isPlaying: false })
+      setSleepTimer(null)
+    }
+  }, 1000)
+}
+startSleepWatcher()
+
 audio.addEventListener('ended', async () => {
   const { playlist, currentIndex } = usePlayerStore.getState()
   const { playMode } = useSettingsStore.getState()
@@ -265,13 +314,18 @@ audio.addEventListener('ended', async () => {
   
   const currentItem = playlist[currentIndex]
   
-  // 合集自动播放下一个分P
-  if (isCollection(currentItem) && currentItem.cid) {
+  // 合集自动播放下一个分P（单曲循环时不切分P）
+  const hasNextPageInCollection =
+    isCollection(currentItem) &&
+    currentItem.cid &&
+    currentItem.pages &&
+    currentItem.pages.findIndex(page => page.cid === currentItem.cid) >= 0 &&
+    currentItem.pages.findIndex(page => page.cid === currentItem.cid) < currentItem.pages.length - 1
+
+  if (hasNextPageInCollection && playMode !== 'single') {
     const currentPageIndex = currentItem.pages!.findIndex(page => page.cid === currentItem.cid)
-    if (currentPageIndex >= 0 && currentPageIndex < currentItem.pages!.length - 1) {
-      await usePlayerStore.getState().playPage(currentIndex, currentPageIndex + 1)
-      return
-    }
+    await usePlayerStore.getState().playPage(currentIndex, currentPageIndex + 1)
+    return
   }
   
   // 根据播放模式处理
@@ -294,9 +348,19 @@ audio.addEventListener('ended', async () => {
         }
       }
       break
-    case 'auto':
-      hasNext ? usePlayerStore.getState().next() : usePlayerStore.getState().gangYiXia()
+    case 'auto': {
+      if (hasNext) {
+        usePlayerStore.getState().next()
+      } else {
+        const gangType = useSettingsStore.getState().gangType
+        if (gangType === 'dui') {
+          usePlayerStore.getState().gangDuiKou()
+        } else {
+          usePlayerStore.getState().gangDanKou()
+        }
+      }
       break
+    }
     case 'sequence':
     default:
       if (hasNext) usePlayerStore.getState().next()
@@ -308,7 +372,28 @@ audio.addEventListener('pause', () => usePlayerStore.setState({ isPlaying: false
 audio.addEventListener('play', () => usePlayerStore.setState({ isPlaying: true }))
 
 audio.addEventListener('error', () => {
-  if (audio.error?.code === MediaError.MEDIA_ERR_NETWORK) {
-    usePlayerStore.setState({ isPlaying: false, error: '网络连接失败，请检查网络' })
+  const error = audio.error
+  let errorMessage = '播放出错'
+  
+  if (error) {
+    switch (error.code) {
+      case MediaError.MEDIA_ERR_ABORTED:
+        errorMessage = '播放已中止'
+        break
+      case MediaError.MEDIA_ERR_NETWORK:
+        errorMessage = '网络连接失败，请检查网络或 Tauri 代理配置'
+        break
+      case MediaError.MEDIA_ERR_DECODE:
+        errorMessage = '无法解码音频格式，可能是文件格式不支持或代理失败'
+        break
+      case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+        errorMessage = '浏览器不支持此音频格式或 CORS 被拒绝'
+        break
+      default:
+        errorMessage = `音频错误 (代码: ${error.code}): ${error.message}`
+    }
   }
+  
+  usePlayerStore.setState({ isPlaying: false, error: errorMessage })
 })
+
