@@ -21,6 +21,8 @@ function Settings() {
     setAudioQuality,
     sleepTimerDeadline,
     setSleepTimer,
+    theme,
+    setTheme,
   } = useSettingsStore()
   const { favorites, removeFavorite } = useFavoritesStore()
   const { playlist } = usePlayerStore()
@@ -261,6 +263,31 @@ function Settings() {
               {audioQuality === 'high' ? '最佳音质，文件较大' : 
                audioQuality === 'medium' ? '平衡音质与大小' : '节省流量，文件最小'}
             </p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm text-white/60">界面主题</label>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setTheme('light')}
+                className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors
+                           ${theme === 'light' 
+                             ? 'bg-[#44965B] text-white' 
+                             : 'bg-white/5 text-white/50 hover:bg-white/10'}`}
+              >
+                浅色
+              </button>
+              <button
+                onClick={() => setTheme('dark')}
+                className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors
+                           ${theme === 'dark' 
+                             ? 'bg-[#44965B] text-white' 
+                             : 'bg-white/5 text-white/50 hover:bg-white/10'}`}
+              >
+                深色
+              </button>
+            </div>
+            <p className="text-xs text-white/30">浅色适合日间，深色适合暗光环境</p>
           </div>
 
           <div className="space-y-2">

@@ -432,6 +432,13 @@ audio.addEventListener('pause', () => usePlayerStore.setState({ isPlaying: false
 audio.addEventListener('play', () => usePlayerStore.setState({ isPlaying: true }))
 
 audio.addEventListener('error', () => {
+  // 当播放列表为空或没有音频源时，忽略错误（例如清空播放列表时设置 src=''）
+  const { playlist } = usePlayerStore.getState()
+  if (!audio.src || playlist.length === 0) {
+    usePlayerStore.setState({ isPlaying: false, error: null })
+    return
+  }
+
   const error = audio.error
   let errorMessage = '播放出错'
   

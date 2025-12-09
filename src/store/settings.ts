@@ -12,6 +12,8 @@ interface SettingsState {
   customKeywords: string[]
   // 播放模式
   playMode: PlayMode
+  // 主题
+  theme: 'light' | 'dark'
   // Gang 类型（单口/对口）
   gangType: GangType
   // 睡眠定时到期时间（时间戳，毫秒）
@@ -39,6 +41,7 @@ interface SettingsActions {
   addKeyword: (keyword: string) => void
   removeKeyword: (keyword: string) => void
   setPlayMode: (mode: PlayMode) => void
+  setTheme: (theme: 'light' | 'dark') => void
   setGangType: (type: GangType) => void
   setSleepTimer: (minutes: number | null) => void
   cyclePlayMode: () => void
@@ -61,6 +64,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
     (set, get) => ({
       customKeywords: [],
       playMode: 'auto',
+      theme: 'light',
       gangType: 'dan',
       sleepTimerDeadline: null,
       volume: 0.8,
@@ -87,6 +91,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
       },
       
       setPlayMode: (mode) => set({ playMode: mode }),
+      setTheme: (theme) => set({ theme }),
       setGangType: (type) => set({ gangType: type }),
       setSleepTimer: (minutes) => {
         if (minutes === null) {
@@ -155,6 +160,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
       partialize: (state) => ({
         customKeywords: state.customKeywords,
         playMode: state.playMode,
+        theme: state.theme,
         gangType: state.gangType,
         sleepTimerDeadline: state.sleepTimerDeadline,
         volume: state.volume,

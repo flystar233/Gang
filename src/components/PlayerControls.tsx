@@ -33,7 +33,7 @@ type GangType = 'dan' | 'dui'
 
 function PlayerControls({ onOpenPlaylist, gangType: _externalGangType, onGangTypeChange }: PlayerControlsProps) {
   const { isPlaying, togglePlay, next, prev, currentTime, duration, playlist, currentIndex, seek, gangDanKou, gangDuiKou, isLoading } = usePlayerStore()
-  const { volume, setVolume, playMode, cyclePlayMode, isMuted, toggleMute, gangType: _storeGangType, setGangType } = useSettingsStore()
+  const { volume, setVolume, playMode, cyclePlayMode, isMuted, toggleMute, gangType: _storeGangType, setGangType, theme } = useSettingsStore()
   const { isFavorite, toggleFavorite } = useFavoritesStore()
   const [isDragging, setIsDragging] = useState(false)
   const [dragProgress, setDragProgress] = useState(0)
@@ -179,18 +179,21 @@ function PlayerControls({ onOpenPlaylist, gangType: _externalGangType, onGangTyp
     }
   }, [])
 
-  const buttonBaseClass = "w-10 h-10 flex items-center justify-center rounded-lg text-white/50 hover:text-white/90 transition-all duration-200 active:scale-95"
+  const isLight = theme === 'light'
+  const buttonBaseClass = `w-10 h-10 flex items-center justify-center rounded-lg transition-all duration-200 active:scale-95 ${
+    isLight ? 'text-gray-700 hover:text-gray-950' : 'text-white/70 hover:text-white'
+  }`
 
   return (
-    <div className={`bg-white/5 rounded-2xl ${isAndroid ? 'p-6 space-y-5' : 'p-5 space-y-4'}`}>
-      <p className="text-sm text-white/80 text-center truncate px-2">
+    <div className={`${isLight ? 'bg-white' : 'bg-white/5'} rounded-2xl ${isAndroid ? 'p-6 space-y-5' : 'p-5 space-y-4'}`}>
+      <p className={`text-sm text-center truncate px-2 ${isLight ? 'text-gray-900' : 'text-white/90'}`}>
         {currentItem?.title || '暂无播放'}
       </p>
 
       <div className="space-y-1">
         <div 
           ref={progressRef}
-          className="relative h-1.5 bg-white/10 rounded-full cursor-pointer group"
+          className={`relative h-1.5 rounded-full cursor-pointer group ${isLight ? 'bg-gray-200' : 'bg-white/10'}`}
           onMouseDown={handleMouseDown}
           onTouchStart={handleTouchStart}
         >
@@ -199,12 +202,15 @@ function PlayerControls({ onOpenPlaylist, gangType: _externalGangType, onGangTyp
             style={{ width: `${displayProgress}%` }}
           />
           <div 
-            className={`absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow
+            className={`absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full shadow
                         ${isDragging ? 'scale-110' : 'scale-0 group-hover:scale-100'} transition-transform`}
-            style={{ left: `calc(${displayProgress}% - 6px)` }}
+            style={{ 
+              left: `calc(${displayProgress}% - 6px)`,
+              backgroundColor: isLight ? '#1f2937' : '#ffffff'
+            }}
           />
         </div>
-        <div className="flex justify-between text-xs text-white/40">
+        <div className={`flex justify-between text-xs ${isLight ? 'text-gray-500' : 'text-white/50'}`}>
           <span>{formatTime(isDragging ? (dragProgress / 100) * duration : currentTime)}</span>
           <span>{formatTime(duration)}</span>
         </div>
@@ -214,16 +220,18 @@ function PlayerControls({ onOpenPlaylist, gangType: _externalGangType, onGangTyp
         <div
           ref={gangButtonRef}
           onClick={handleGangClick}
-          className={`group relative flex items-center py-4 rounded-full bg-white/5 border-[3px] border-white/40 overflow-hidden select-none transition-all duration-300 ${
+          className={`group relative flex items-center py-4 rounded-full overflow-hidden select-none transition-all duration-300 ${
+            isLight ? 'bg-gray-100 border-[3px] border-gray-200' : 'bg-white/5 border-[3px] border-white/20'
+          } ${
             isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-          } ${isWindows ? 'hover:bg-white/10 hover:border-white/60' : ''}`}
+          } ${isWindows ? (isLight ? 'hover:bg-gray-200 hover:border-gray-300' : 'hover:bg-white/10 hover:border-white/60') : ''}`}
           style={{ width: '280px' }}
         >
           {/* 左边背景 - 奶白色填满整个左边 */}
           <div className="absolute inset-y-0 left-0 w-1/2 bg-[#F0EDE5] rounded-l-full transition-all duration-300 group-hover:bg-[#F0EDE5]/95" />
           
           {/* 右边背景 - 主题色填满整个右边 */}
-          <div className={`absolute inset-y-0 right-0 w-1/2 bg-[#44965B]/40 rounded-r-full transition-all duration-300 ${isWindows ? 'group-hover:bg-[#44965B]/50' : ''}`} />
+          <div className={`absolute inset-y-0 right-0 w-1/2 bg-[#44965B]/30 rounded-r-full transition-all duration-300 ${isWindows ? 'group-hover:bg-[#44965B]/40' : ''}`} />
           
           {/* 右边斜线纹理 - 45度斜线 */}
           <div 
@@ -235,11 +243,11 @@ function PlayerControls({ onOpenPlaylist, gangType: _externalGangType, onGangTyp
           
           {/* 左边 - 单口图标 */}
           <div
-            className="relative z-10 w-1/2 flex items-center justify-center h-full transition-all duration-300"
+              className="relative z-10 w-1/2 flex items-center justify-center h-full transition-all duration-300"
           >
             <GangTypeIcon 
               type="dan" 
-              className={`w-6 h-6 text-gray-900 select-none transition-all duration-300 ${
+              className={`w-6 h-6 select-none transition-all duration-300 ${isLight ? 'text-gray-900' : 'text-white'} ${
                 isWindows ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'
               }`}
             />
@@ -248,20 +256,20 @@ function PlayerControls({ onOpenPlaylist, gangType: _externalGangType, onGangTyp
           {/* 中间分割线 - 真实胶囊分割效果 */}
           <div className="pointer-events-none absolute inset-y-0 left-1/2 -translate-x-1/2 z-30">
             {/* 主分割线 - 深色细线，模拟胶囊中间的凹槽 */}
-            <div className="absolute inset-y-0 left-0 w-[1px] bg-gray-500/50" />
+            <div className="absolute inset-y-0 left-0 w-[1px] bg-gray-400/60" />
             {/* 左侧内阴影 - 营造左侧凹陷感 */}
-            <div className="absolute inset-y-0 left-0 w-[2px] bg-gradient-to-r from-black/15 to-transparent" />
+            <div className="absolute inset-y-0 left-0 w-[2px] bg-gradient-to-r from-black/10 to-transparent" />
             {/* 右侧内高光 - 营造右侧凸起感 */}
-            <div className="absolute inset-y-0 right-0 w-[2px] bg-gradient-to-l from-white/25 to-transparent" />
+            <div className="absolute inset-y-0 right-0 w-[2px] bg-gradient-to-l from-white/60 to-transparent" />
           </div>
           
           {/* 右边 - 对口图标 */}
           <div
-            className="relative z-10 w-1/2 flex items-center justify-center h-full transition-all duration-300"
+              className="relative z-10 w-1/2 flex items-center justify-center h-full transition-all duration-300"
           >
             <GangTypeIcon 
               type="dui" 
-              className={`w-6 h-6 text-white select-none transition-all duration-300 ${
+              className={`w-6 h-6 select-none transition-all duration-300 ${isLight ? 'text-gray-900' : 'text-white'} ${
                 isWindows ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'
               }`}
             />
@@ -329,7 +337,7 @@ function PlayerControls({ onOpenPlaylist, gangType: _externalGangType, onGangTyp
                 >
                   <div 
                     ref={volumeRef}
-                    className="relative h-16 w-1.5 bg-white/10 rounded-full cursor-pointer"
+                    className={`relative h-16 w-1.5 rounded-full cursor-pointer ${isLight ? 'bg-gray-200' : 'bg-white/10'}`}
                     onMouseDown={(e) => {
                       e.stopPropagation()
                       e.preventDefault()
@@ -360,7 +368,7 @@ function PlayerControls({ onOpenPlaylist, gangType: _externalGangType, onGangTyp
                   disabled={!currentItem}
                   className={`${buttonBaseClass} ${
                     isCurrentFavorite 
-                      ? 'text-red-500 hover:text-red-400 drop-shadow-[0_0_4px_rgba(239,68,68,0.5)]' 
+                      ? 'text-red-500 hover:text-red-400 drop-shadow-[0_0_4px_rgba(239,68,68,0.35)]' 
                       : ''
                   } disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200`}
                   title={isCurrentFavorite ? '取消收藏' : '收藏'}
@@ -399,17 +407,18 @@ function PlayerControls({ onOpenPlaylist, gangType: _externalGangType, onGangTyp
           <button
             onClick={togglePlay}
             disabled={playlist.length === 0}
-            className="w-14 h-14 flex items-center justify-center rounded-lg
+            className={`w-14 h-14 flex items-center justify-center rounded-full border 
                        disabled:opacity-40 disabled:cursor-not-allowed
-                       active:scale-95 transition-all duration-200"
+                       active:scale-95 transition-all duration-200 shadow-sm
+                       ${isLight ? 'bg-gray-100 border-gray-200' : 'bg-white/10 border-white/20'}`}
           >
             {isPlaying ? (
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" className="text-white/90 pointer-events-none">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" className={`${isLight ? 'text-gray-900' : 'text-white'} pointer-events-none`}>
                 <rect x="6" y="4" width="4" height="16" rx="1" />
                 <rect x="14" y="4" width="4" height="16" rx="1" />
               </svg>
             ) : (
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" className="text-white/90 ml-1 pointer-events-none">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" className={`${isLight ? 'text-gray-900' : 'text-white'} ml-1 pointer-events-none`}>
                 <path d="M8 5v14l11-7L8 5z" />
               </svg>
             )}

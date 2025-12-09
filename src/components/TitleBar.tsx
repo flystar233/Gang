@@ -7,6 +7,7 @@ import logoImage from '@/assets/guodegang.svg'
 
 function TitleBar() {
   const { toggleSettings } = useSettingsStore()
+  const theme = useSettingsStore((state) => state.theme)
   const [showWaveform, setShowWaveform] = useState(false)
 
   const handleMinimize = () => {
@@ -26,7 +27,7 @@ function TitleBar() {
 
   return (
     <div 
-      className={`${isAndroid ? 'h-10' : 'h-14'} flex items-center justify-between px-4`}
+      className={`${isAndroid ? 'h-10' : 'h-14'} flex items-center justify-between px-4 ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}
       style={isTauri ? { WebkitAppRegion: 'drag' } as React.CSSProperties : undefined}
     >
       {/* Logo 和标题 - Android 平台不显示 */}
@@ -55,7 +56,7 @@ function TitleBar() {
                   className="w-full h-full object-cover rounded-lg hover:scale-110 transition-transform" 
                 />
               </div>
-              <span className="text-sm font-semibold text-white/90 tracking-wide">纲一下</span>
+              <span className={`text-sm font-semibold tracking-wide ${theme === 'light' ? 'text-gray-900' : 'text-white/90'}`}>纲一下</span>
             </>
           )}
         </div>
@@ -73,9 +74,8 @@ function TitleBar() {
         {!isAndroid && (
           <button
             onClick={toggleSettings}
-            className="w-7 h-7 flex items-center justify-center rounded-lg
-                       text-white/40 hover:text-white/80 hover:bg-white/5
-                       transition-all duration-200"
+            className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-200
+                       ${theme === 'light' ? 'text-gray-500 hover:text-gray-800 hover:bg-gray-100' : 'text-white/40 hover:text-white/80 hover:bg-white/5'}`}
             title="设置"
           >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -89,9 +89,8 @@ function TitleBar() {
         {isTauri && !isAndroid && (
           <button
             onClick={handleMinimize}
-            className="w-7 h-7 flex items-center justify-center rounded-lg
-                       text-white/40 hover:text-white/80 hover:bg-white/5
-                       transition-all duration-200"
+            className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-200
+                       ${theme === 'light' ? 'text-gray-500 hover:text-gray-800 hover:bg-gray-100' : 'text-white/40 hover:text-white/80 hover:bg-white/5'}`}
             title="最小化"
           >
             <svg width="12" height="2" viewBox="0 0 12 2" fill="currentColor">
@@ -104,9 +103,8 @@ function TitleBar() {
         {isTauri && !isAndroid && (
           <button
             onClick={handleClose}
-            className="w-7 h-7 flex items-center justify-center rounded-lg
-                       text-white/40 hover:text-white hover:bg-red-500/80
-                       transition-all duration-200"
+            className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-200
+                       ${theme === 'light' ? 'text-gray-500 hover:text-white hover:bg-red-500/80' : 'text-white/40 hover:text-white hover:bg-red-500/80'}`}
             title="关闭"
           >
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
