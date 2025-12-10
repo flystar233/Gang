@@ -16,12 +16,17 @@ function App() {
   const [isFavoritesOpen, setIsFavoritesOpen] = useState(false)
   const gangType = useSettingsStore((state) => state.gangType)
   const theme = useSettingsStore((state) => state.theme)
+  const setTheme = useSettingsStore((state) => state.setTheme)
   const setGangType = useSettingsStore((state) => state.setGangType)
   const closeAction = useSettingsStore((state) => state.closeAction)
   const isPlaying = usePlayerStore((state) => state.isPlaying)
   const { playlist, currentIndex } = usePlayerStore()
   const { isFavorite, toggleFavorite } = useFavoritesStore()
+  const isLightTheme = theme === 'light'
   
+  const handleToggleTheme = () => {
+    setTheme(theme === 'light' ? 'dark' : 'light')
+  }
   const currentItem = playlist[currentIndex]
   const isCurrentFavorite = currentItem ? isFavorite(currentItem.bvid) : false
 
@@ -77,9 +82,13 @@ function App() {
               </div>
             </div>
             
-            <div 
-              className="absolute -top-8 -right-10 origin-top transition-transform duration-500 ease-out"
+            <button
+              type="button"
+              onClick={handleToggleTheme}
+              className="absolute -top-8 -right-10 origin-top transition-transform duration-500 ease-out bg-transparent border-0 p-0 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#44965B]/60 rounded-full"
               style={{ transform: isPlaying ? 'rotate(24deg)' : 'rotate(-5deg)' }}
+              aria-label="切换主题"
+              title="切换主题"
             >
               <div className="absolute -top-2 -left-2 w-11 h-11 rounded-full bg-gradient-to-br from-[#4a4a50] to-[#2a2a30] shadow-xl shadow-black/70" />
               <div className="absolute -top-0.5 -left-0.5 w-8 h-8 rounded-full bg-gradient-to-br from-[#6a6a70] to-[#3a3a40]" />
@@ -88,14 +97,14 @@ function App() {
               </div>
               <div className="absolute top-5 left-1/2 -translate-x-1/2 w-2 h-[108px] bg-gradient-to-b from-[#a0a0a8] to-[#606068] rounded-full shadow-md" />
               <div 
-                className="absolute top-[120px] left-1/2 origin-top"
+                className="absolute top-[120px] left-1/2 origin-top pointer-events-none"
                 style={{ transform: 'translateX(-50%) rotate(-35deg)' }}
               >
                 <div className="w-1.5 h-7 bg-gradient-to-b from-[#909098] to-[#505058] rounded-full shadow-md" />
                 <div className="absolute top-6 left-1/2 -translate-x-1/2 w-3.5 h-4 bg-gradient-to-b from-[#707078] to-[#404048] border border-white/20 rounded-sm" />
                 <div className="absolute top-[38px] left-1/2 -translate-x-1/2 w-1 h-2 bg-[#44965B] rounded-b-full shadow-sm shadow-[#44965B]/50" />
               </div>
-            </div>
+            </button>
           </div>
         </div>
         
@@ -104,7 +113,9 @@ function App() {
             <div className="flex items-center justify-between gap-3">
               <button
                 onClick={() => setIsFavoritesOpen(true)}
-                className="w-12 h-12 flex items-center justify-center rounded-lg text-white/50 hover:text-white/90 transition-all duration-200 active:scale-95"
+                className={`w-12 h-12 flex items-center justify-center rounded-lg transition-all duration-200 active:scale-95 ${
+                  isLightTheme ? 'text-gray-700 hover:text-gray-900' : 'text-white/70 hover:text-white/90'
+                }`}
                 title="收藏列表"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -117,7 +128,13 @@ function App() {
                 onClick={handleToggleFavorite}
                 disabled={!currentItem}
                 className={`w-12 h-12 flex items-center justify-center rounded-lg transition-all duration-200 active:scale-95 ${
-                  isCurrentFavorite ? 'text-red-400 hover:text-red-300' : 'text-white/50 hover:text-white/90'
+                  isCurrentFavorite
+                    ? isLightTheme
+                      ? 'text-red-500 hover:text-red-400'
+                      : 'text-red-400 hover:text-red-300'
+                    : isLightTheme
+                      ? 'text-gray-700 hover:text-gray-900'
+                      : 'text-white/70 hover:text-white/90'
                 } disabled:opacity-30 disabled:cursor-not-allowed`}
                 title={isCurrentFavorite ? '取消收藏' : '收藏'}
               >

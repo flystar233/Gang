@@ -32,7 +32,7 @@ const playModeLabels: Record<PlayMode, string> = {
 type GangType = 'dan' | 'dui'
 
 function PlayerControls({ onOpenPlaylist, gangType: _externalGangType, onGangTypeChange }: PlayerControlsProps) {
-  const { isPlaying, togglePlay, next, prev, currentTime, duration, playlist, currentIndex, seek, gangDanKou, gangDuiKou, isLoading } = usePlayerStore()
+  const { isPlaying, togglePlay, next, prev, currentTime, duration, bufferedTime, playlist, currentIndex, seek, gangDanKou, gangDuiKou, isLoading } = usePlayerStore()
   const { volume, setVolume, playMode, cyclePlayMode, isMuted, toggleMute, gangType: _storeGangType, setGangType, theme } = useSettingsStore()
   const { isFavorite, toggleFavorite } = useFavoritesStore()
   const [isDragging, setIsDragging] = useState(false)
@@ -79,6 +79,7 @@ function PlayerControls({ onOpenPlaylist, gangType: _externalGangType, onGangTyp
   
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0
+  const bufferedProgress = duration > 0 ? (bufferedTime / duration) * 100 : 0
   const displayProgress = isDragging ? dragProgress : progress
   const currentItem = playlist[currentIndex]
   const isCurrentFavorite = currentItem ? isFavorite(currentItem.bvid) : false
@@ -197,12 +198,20 @@ function PlayerControls({ onOpenPlaylist, gangType: _externalGangType, onGangTyp
           onMouseDown={handleMouseDown}
           onTouchStart={handleTouchStart}
         >
+          {/* 缓冲进度条（半透明，显示在播放进度后面） */}
+          {bufferedProgress > displayProgress && (
+            <div
+              className={`absolute inset-y-0 left-0 rounded-full ${isLight ? 'bg-gray-300/50' : 'bg-white/20'}`}
+              style={{ width: `${bufferedProgress}%` }}
+            />
+          )}
+          {/* 播放进度条 */}
           <div
-            className="absolute inset-y-0 left-0 bg-[#44965B] rounded-full"
+            className="absolute inset-y-0 left-0 bg-[#44965B] rounded-full z-10"
             style={{ width: `${displayProgress}%` }}
           />
           <div 
-            className={`absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full shadow
+            className={`absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full shadow z-20
                         ${isDragging ? 'scale-110' : 'scale-0 group-hover:scale-100'} transition-transform`}
             style={{ 
               left: `calc(${displayProgress}% - 6px)`,
