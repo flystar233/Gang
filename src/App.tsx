@@ -40,6 +40,19 @@ function App() {
     }
   }, []) // 只在启动时执行一次
   
+  // 启动时预热本地代理，避免首次点收藏时代理未启动导致拒绝连接
+  useEffect(() => {
+    if (!isTauri) return
+    ;(async () => {
+      try {
+        const { invoke } = await import('@tauri-apps/api/core')
+        await invoke('start_proxy_server')
+      } catch {
+        // 忽略预热失败
+      }
+    })()
+  }, [])
+
   const handleToggleFavorite = () => {
     if (currentItem) {
       toggleFavorite(currentItem, currentItem.audioUrl)

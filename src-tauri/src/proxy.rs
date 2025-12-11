@@ -5,12 +5,12 @@
 use crate::constants::{PROXY_PORT_RANGE_END, PROXY_PORT_RANGE_START};
 use crate::http_client::{add_bilibili_headers, get_http_client};
 use axum::{
+    body::Body,
     extract::{Path, Request},
     http::{header, HeaderName, HeaderValue, StatusCode},
     response::Response,
     routing::get,
     Router,
-    body::Body,
 };
 use futures::StreamExt;
 use lazy_static::lazy_static;
@@ -24,35 +24,39 @@ lazy_static! {
     static ref PROXY_SERVER_PORT: Arc<Mutex<Option<u16>>> = Arc::new(Mutex::new(None));
 }
 
-/// 启动代理服务器（返回代理 URL）
+async fn bind_available_port() -> Result<(u16, tokio::net::TcpListener), String> {
+    for port in PROXY_PORT_RANGE_START..PROXY_PORT_RANGE_END {
+        match tokio::net::TcpListener::bind(format!("127.0.0.1:{}", port)).await {
+            Ok(listener) => return Ok((port, listener)),
+            Err(_) => continue,
+        }
+    }
+    Err("无法找到可用端口".into())
+}
+
+/// 启动代理服务器（返回代理端口）
 pub async fn start_proxy_server() -> Result<u16, String> {
     let mut port_guard = PROXY_SERVER_PORT.lock().await;
     if let Some(port) = *port_guard {
         return Ok(port);
     }
-    
-    // 查找可用端口
-    let port = (PROXY_PORT_RANGE_START..PROXY_PORT_RANGE_END)
-        .find(|p| std::net::TcpListener::bind(format!("127.0.0.1:{}", p)).is_ok())
-        .ok_or("无法找到可用端口")?;
-    
+
+    // 直接绑定端口，避免“先探测后绑定”期间的抢占
+    let (port, listener) = bind_available_port().await?;
     let port_clone = port;
-    
-    // 启动代理服务器
+
     tokio::spawn(async move {
         let app = Router::new()
             .route("/proxy/:encoded_url", get(handle_proxy_request))
             .layer(ServiceBuilder::new().layer(CorsLayer::permissive()));
-        
-        let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", port_clone))
-            .await
-            .expect("无法绑定端口");
-        
-        axum::serve(listener, app).await.expect("代理服务器启动失败");
+
+        if let Err(err) = axum::serve(listener, app).await {
+            eprintln!("[Proxy] 启动失败: {:?}", err);
+        }
     });
-    
-    *port_guard = Some(port);
-    Ok(port)
+
+    *port_guard = Some(port_clone);
+    Ok(port_clone)
 }
 
 /// 处理代理请求（支持 Range 请求，实现流式播放）
