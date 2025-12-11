@@ -132,7 +132,7 @@ function App() {
             
             <button
               type="button"
-              onClick={handleToggleTheme}
+              onDoubleClick={handleToggleTheme}
               className="absolute -top-8 -right-10 origin-top transition-transform duration-500 ease-out bg-transparent border-0 p-0 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#44965B]/60 rounded-full"
               style={{ transform: isPlaying ? 'rotate(24deg)' : 'rotate(-5deg)' }}
               aria-label="切换主题"
