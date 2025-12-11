@@ -14,6 +14,7 @@ import backImage from '@/assets/back.jpg'
 function App() {
   const [isPlaylistOpen, setIsPlaylistOpen] = useState(false)
   const [isFavoritesOpen, setIsFavoritesOpen] = useState(false)
+  const [drawerHistoryPushed, setDrawerHistoryPushed] = useState(false)
   const gangType = useSettingsStore((state) => state.gangType)
   const theme = useSettingsStore((state) => state.theme)
   const setTheme = useSettingsStore((state) => state.setTheme)
@@ -44,6 +45,40 @@ function App() {
       toggleFavorite(currentItem, currentItem.audioUrl)
     }
   }
+
+  // 安卓左缘返回手势：先收起抽屉，避免直接退出应用
+  useEffect(() => {
+    if (!isAndroid) return
+
+    const handleAndroidBack = (event: PopStateEvent) => {
+      if (isPlaylistOpen || isFavoritesOpen) {
+        event.preventDefault?.()
+        setIsPlaylistOpen(false)
+        setIsFavoritesOpen(false)
+        setDrawerHistoryPushed(false)
+      }
+    }
+
+    window.addEventListener('popstate', handleAndroidBack)
+    return () => window.removeEventListener('popstate', handleAndroidBack)
+  }, [isAndroid, isPlaylistOpen, isFavoritesOpen])
+
+  // 打开抽屉时压入历史栈，关闭时弹出，保障返回手势只回到主界面
+  useEffect(() => {
+    if (!isAndroid) return
+
+    const drawerOpen = isPlaylistOpen || isFavoritesOpen
+
+    if (drawerOpen && !drawerHistoryPushed) {
+      window.history.pushState({ drawerOpen: true }, '', window.location.href)
+      setDrawerHistoryPushed(true)
+    }
+
+    if (!drawerOpen && drawerHistoryPushed) {
+      window.history.back()
+      setDrawerHistoryPushed(false)
+    }
+  }, [isAndroid, isPlaylistOpen, isFavoritesOpen, drawerHistoryPushed])
   
 
   const recordGrooves = [
