@@ -4,7 +4,7 @@ import { getProxiedImageUrl, getAudioUrl, proxyAudioUrl, getVideoInfo } from '@/
 import { formatDuration } from '@/utils/format'
 import type { PlayItem } from '@/types'
 import { Drawer } from './Drawer'
-import { isTauri } from '@/utils/platform'
+import { isTauri, isAndroid } from '@/utils/platform'
 import { useEffect } from 'react'
 
 // 简单延时
@@ -145,7 +145,7 @@ function FavoritesDrawer({ isOpen, onClose }: FavoritesDrawerProps) {
                   <p className="text-xs text-white/30 mt-0.5">{formatDuration(favorite.duration)}</p>
                 </div>
 
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className={`flex items-center gap-1 transition-opacity ${isAndroid ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
