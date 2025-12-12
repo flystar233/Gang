@@ -95,7 +95,7 @@ function App() {
   
 
   const recordGrooves = [
-    'inset-1', 'inset-2', 'inset-3', 'inset-4', 'inset-5', 'inset-6'
+    'inset-1', 'inset-2', 'inset-3', 'inset-4', 'inset-5', 'inset-6', 'inset-7', 'inset-8', 'inset-9'
   ]
 
 
@@ -107,19 +107,36 @@ function App() {
         <div className="flex-1 overflow-hidden flex items-center justify-center">
           <div className="relative">
             <div 
-              className={`relative w-56 h-56 rounded-full shadow-2xl shadow-black/50 animate-spin-slow bg-black border border-white/10 ${
-                isAndroid ? 'overflow-hidden' : ''
-              }`}
+              className={`relative w-56 h-56 rounded-full shadow-2xl animate-spin-slow ${
+                isLightTheme 
+                  ? 'bg-black shadow-black/50' 
+                  : 'bg-[#cec9c4] shadow-black/30'
+              } ${isAndroid ? 'overflow-hidden' : ''}`}
               style={{ 
                 animationPlayState: isPlaying ? 'running' : 'paused',
                 ...(isAndroid && { clipPath: 'circle(50% at 50% 50%)' })
               }}
             >
+              {/* 外圈凸起边缘 */}
+              <div 
+                className={`absolute inset-0 rounded-full ${
+                  isLightTheme 
+                    ? 'shadow-[inset_0_3px_6px_rgba(255,255,255,0.25),inset_0_-3px_6px_rgba(0,0,0,0.4),inset_0_0_0_3px_rgba(255,255,255,0.1)]' 
+                    : 'shadow-[inset_0_4px_8px_rgba(255,255,255,0.5),inset_0_-4px_8px_rgba(0,0,0,0.5),inset_0_0_0_4px_rgba(80,70,60,0.3)]'
+                }`} 
+              />
               {recordGrooves.map((inset, i) => (
-                <div key={i} className={`absolute ${inset} rounded-full border border-white/5 ${isAndroid ? 'overflow-hidden' : ''}`} />
+                <div 
+                  key={i} 
+                  className={`absolute ${inset} rounded-full border ${
+                    isLightTheme ? 'border-white/5' : 'border-black/10'
+                  } ${isAndroid ? 'overflow-hidden' : ''}`} 
+                />
               ))}
               <div 
-                className={`absolute inset-7 rounded-full overflow-hidden border-2 border-white/10 ${isAndroid ? 'overflow-hidden' : ''}`}
+                className={`absolute inset-10 rounded-full overflow-hidden border-2 ${
+                  isLightTheme ? 'border-white/10' : 'border-black/20'
+                } ${isAndroid ? 'overflow-hidden' : ''}`}
                 style={{
                   backgroundImage: `url(${backImage})`,
                   backgroundSize: 'cover',
