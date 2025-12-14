@@ -15,6 +15,7 @@ function App() {
   const [isPlaylistOpen, setIsPlaylistOpen] = useState(false)
   const [isFavoritesOpen, setIsFavoritesOpen] = useState(false)
   const [drawerHistoryPushed, setDrawerHistoryPushed] = useState(false)
+  const [bvidCopied, setBvidCopied] = useState(false)
   const gangType = useSettingsStore((state) => state.gangType)
   const theme = useSettingsStore((state) => state.theme)
   const setTheme = useSettingsStore((state) => state.setTheme)
@@ -101,8 +102,23 @@ function App() {
 
   return (
     <div className={`h-screen w-full ${theme === 'light' ? 'bg-white text-gray-900' : 'bg-[#0d0d12] text-white'} flex items-center justify-center`}>
-      <div className={`h-full w-full overflow-hidden flex flex-col ${theme === 'light' ? 'bg-white' : 'bg-[#0d0d12]'}`}>
+      <div className={`h-full w-full overflow-hidden flex flex-col relative ${theme === 'light' ? 'bg-white' : 'bg-[#0d0d12]'}`}>
         <TitleBar />
+        
+        {/* bvid 显示 - 浮动文本，不影响布局，点击复制 */}
+        {!isAndroid && currentItem?.bvid && (
+          <span 
+            className={`absolute top-14 left-4 text-xs cursor-pointer ${isLightTheme ? 'text-gray-400 hover:text-gray-600' : 'text-white/40 hover:text-white/60'}`}
+            onClick={() => {
+              navigator.clipboard.writeText(currentItem.bvid)
+              setBvidCopied(true)
+              setTimeout(() => setBvidCopied(false), 1500)
+            }}
+            title="点击复制"
+          >
+            {bvidCopied ? '已复制' : currentItem.bvid}
+          </span>
+        )}
         
         <div className="flex-1 overflow-hidden flex items-center justify-center">
           <div className="relative">

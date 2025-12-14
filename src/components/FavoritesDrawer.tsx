@@ -1,6 +1,6 @@
 import { useFavoritesStore, type FavoriteItem } from '@/store/favorites'
 import { usePlayerStore } from '@/store/player'
-import { getProxiedImageUrl, getAudioUrl, proxyAudioUrl, getVideoInfo } from '@/api/bilibili'
+import { getProxiedImageUrl, getAudioUrl, proxyAudioUrl, getVideoInfo, checkVideoStatus } from '@/api/bilibili'
 import { formatDuration } from '@/utils/format'
 import type { PlayItem } from '@/types'
 import { Drawer } from './Drawer'
@@ -84,14 +84,28 @@ function FavoritesDrawer({ isOpen, onClose }: FavoritesDrawerProps) {
     // 确保代理已启动，避免初次点击收藏时连接被拒绝
     try {
       await ensureProxyReady()
-    } catch (error) {
+    } catch {
       usePlayerStore.setState({ isLoading: false, error: '代理启动失败，请重试或重启应用' })
+      return
+    }
+
+    // 先检查视频状态
+    const videoStatus = await checkVideoStatus(favorite.bvid)
+    if (videoStatus.status !== 'ok') {
+      usePlayerStore.setState({ isLoading: false })
+      
+      if (videoStatus.status === 'error') {
+        usePlayerStore.setState({ error: '网络错误，请检查网络后重试' })
+      } else {
+        // 视频已失效，显示提示
+        usePlayerStore.setState({ error: videoStatus.message || '视频已失效，无法播放' })
+      }
       return
     }
 
     const resolved = await resolveFavoriteAudio(favorite)
     if (!resolved?.audioUrl) {
-      usePlayerStore.setState({ isLoading: false, error: '无法获取收藏音频地址，请重试' })
+      usePlayerStore.setState({ isLoading: false, error: '无法获取音频地址，请稍后重试' })
       return
     }
 

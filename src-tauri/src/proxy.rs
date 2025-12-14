@@ -86,7 +86,10 @@ async fn handle_proxy_request(
     
     let response = match req_builder.send().await {
         Ok(r) => r,
-        Err(_) => return Err(StatusCode::BAD_GATEWAY),
+        Err(e) => {
+            eprintln!("[Proxy] 请求失败: {:?}", e);
+            return Err(StatusCode::BAD_GATEWAY);
+        }
     };
     
     let reqwest_status = response.status();
@@ -94,6 +97,10 @@ async fn handle_proxy_request(
     
     // 检查状态码
     if !reqwest_status.is_success() && status_u16 != 206 {
+        // 403 是链接过期的正常情况，前端会自动刷新，不打印日志
+        if status_u16 != 403 {
+            eprintln!("[Proxy] B站返回错误状态码: {}", status_u16);
+        }
         return Err(StatusCode::BAD_GATEWAY);
     }
     

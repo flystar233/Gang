@@ -185,10 +185,10 @@ function PlayerControls({ onOpenPlaylist, gangType: _externalGangType, onGangTyp
   }`
 
   return (
-    <div className={`${isLight ? 'bg-white' : 'bg-white/5'} rounded-2xl ${isAndroid ? 'p-6 space-y-5' : 'p-5 space-y-4'}`}>
-      <p className={`text-sm text-center truncate px-2 ${isLight ? 'text-gray-900' : 'text-white/90'}`}>
-        {currentItem?.title || '暂无播放'}
-      </p>
+    <div className={`${isLight ? 'bg-white border border-gray-200' : 'bg-white/5'} rounded-2xl ${isAndroid ? 'p-6 space-y-5' : 'p-5 space-y-4'} relative`}>
+      <p className={`text-sm text-center truncate px-2 h-5 leading-5 ${isLight ? 'text-gray-900' : 'text-white/90'}`}>
+          {currentItem?.title || '暂无播放'}
+        </p>
 
       <div className="space-y-1">
         <div 
@@ -211,7 +211,7 @@ function PlayerControls({ onOpenPlaylist, gangType: _externalGangType, onGangTyp
             }}
           />
         </div>
-        <div className={`flex justify-between text-xs ${isLight ? 'text-gray-500' : 'text-white/50'}`}>
+        <div className={`flex justify-between text-xs h-4 leading-4 ${isLight ? 'text-gray-500' : 'text-white/50'}`}>
           <span>{formatTime(isDragging ? (dragProgress / 100) * duration : currentTime)}</span>
           <span>{formatTime(duration)}</span>
         </div>
@@ -221,7 +221,7 @@ function PlayerControls({ onOpenPlaylist, gangType: _externalGangType, onGangTyp
         <div
           ref={gangButtonRef}
           onClick={handleGangClick}
-          className={`group relative flex items-center py-4 rounded-full overflow-hidden select-none transition-all duration-300 ${
+          className={`group relative flex items-center h-14 rounded-full overflow-hidden select-none transition-all duration-300 ${
             isLight ? 'bg-gray-100 border-[3px] border-gray-200' : 'bg-white/5 border-[3px] border-white/20'
           } ${
             isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'

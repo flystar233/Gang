@@ -21,6 +21,17 @@ import { parseDuration, processImageUrl, stripHtmlTags } from '@/utils/video'
 
 const audioUrlCache = new LRUCache<string, string>(AUDIO_URL_CACHE_SIZE)
 
+// 清除音频 URL 缓存（用于链接过期时刷新）
+export function clearAudioUrlCache(url?: string) {
+  if (url) {
+    // 清除特定 URL 的缓存
+    audioUrlCache.delete(url)
+  } else {
+    // 清除所有缓存
+    audioUrlCache.clear()
+  }
+}
+
 export async function proxyAudioUrl(url: string): Promise<string> {
   // 检查缓存
   const cached = audioUrlCache.get(url)
@@ -118,6 +129,33 @@ async function searchVideos(keyword: string, page = 1): Promise<VideoItem[]> {
     pic: processImageUrl(item.pic || '', ''),
     duration: parseDuration(item.duration),
   }))
+}
+
+// 视频状态枚举
+export type VideoStatus = 'ok' | 'deleted' | 'banned' | 'not_found' | 'error'
+
+// 检查视频状态（返回详细状态）
+export async function checkVideoStatus(bvid: string): Promise<{ status: VideoStatus; message?: string }> {
+  try {
+    const res = await apiRequest.get<VideoInfoResponse>('/x/web-interface/view', { params: { bvid } })
+    const data = res as unknown as VideoInfoResponse
+    
+    switch (data.code) {
+      case 0:
+        return { status: 'ok' }
+      case -404:
+        return { status: 'not_found', message: '视频不存在' }
+      case 62002:
+      case 62004:
+        return { status: 'banned', message: '视频已被下架' }
+      case -403:
+        return { status: 'banned', message: '视频无法访问' }
+      default:
+        return { status: 'error', message: `视频状态异常 (${data.code})` }
+    }
+  } catch {
+    return { status: 'error', message: '网络错误' }
+  }
 }
 
 // 获取视频详情（网络错误会向上抛出）

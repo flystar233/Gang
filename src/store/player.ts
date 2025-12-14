@@ -1,9 +1,13 @@
 import { create } from 'zustand'
-import { getRandomVideo, getRandomDanKouVideo, getRandomDuiKouVideo, getAudioUrl } from '@/api/bilibili'
+import { getRandomVideo, getRandomDanKouVideo, getRandomDuiKouVideo, getAudioUrl, clearAudioUrlCache } from '@/api/bilibili'
 import { useSettingsStore } from '@/store/settings'
 import { isAndroid } from '@/utils/platform'
 import { isCollection } from '@/utils/video'
 import type { PlayItem, VideoItem } from '@/types'
+
+// 链接刷新重试计数器（避免无限重试）
+let refreshRetryCount = 0
+const MAX_REFRESH_RETRIES = 2
 
 type VideoResult = VideoItem | VideoItem[] | (VideoItem & { pages?: VideoItem[] })
 
@@ -259,12 +263,64 @@ const ERROR_MESSAGES: Record<number, string> = {
   [MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED]: '不支持此音频格式',
 }
 
-audio.addEventListener('error', () => {
+// 刷新当前播放项的音频 URL（用于链接过期时）
+const refreshCurrentAudioUrl = async (): Promise<boolean> => {
+  const { playlist, currentIndex } = usePlayerStore.getState()
+  const item = playlist[currentIndex]
+  if (!item?.bvid || !item?.cid) return false
+
+  // 清除旧的缓存
+  clearAudioUrlCache()
+
+  // 重新获取音频 URL
+  const audioInfo = await getAudioUrl(item.bvid, item.cid)
+  if (!audioInfo) return false
+
+  // 更新播放列表中的 URL
+  const newPlaylist = [...playlist]
+  newPlaylist[currentIndex] = { ...item, audioUrl: audioInfo.url, audioBitrate: audioInfo.bitrate }
+  usePlayerStore.setState({ playlist: newPlaylist })
+
+  // 播放新的 URL
+  playAudio(audioInfo.url)
+  usePlayerStore.setState({ isPlaying: true, error: null })
+  return true
+}
+
+audio.addEventListener('error', async () => {
   if (!audio.src || usePlayerStore.getState().playlist.length === 0) {
     return usePlayerStore.setState({ isPlaying: false, error: null })
   }
+
   const code = audio.error?.code ?? 0
+
+  // 网络错误或不支持的格式可能是链接过期，尝试刷新
+  if ((code === MediaError.MEDIA_ERR_NETWORK || code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) 
+      && refreshRetryCount < MAX_REFRESH_RETRIES) {
+    refreshRetryCount++
+    usePlayerStore.setState({ isLoading: true, error: null })
+    
+    try {
+      const success = await refreshCurrentAudioUrl()
+      if (success) return // 刷新成功，静默处理
+    } catch {
+      // 刷新失败，继续走下面的错误处理
+    }
+    
+    // 刷新失败才打印日志
+    if (refreshRetryCount >= MAX_REFRESH_RETRIES) {
+      console.error('[Player] 链接刷新失败，已达重试上限')
+    }
+    usePlayerStore.setState({ isLoading: false })
+  }
+
+  // 刷新失败或达到重试上限，显示错误
   usePlayerStore.setState({ isPlaying: false, error: ERROR_MESSAGES[code] || `音频错误: ${code}` })
+})
+
+// 成功播放时重置重试计数器
+audio.addEventListener('playing', () => {
+  refreshRetryCount = 0
 })
 
 audio.addEventListener('ended', async () => {
@@ -319,3 +375,54 @@ setInterval(() => {
     setSleepTimer(null)
   }
 }, 1000)
+
+// Android MediaSession 桥接
+declare global {
+  interface Window {
+    AndroidMediaSession?: {
+      updatePlaybackState: (isPlaying: boolean) => void
+      updateMetadata: (title: string) => void
+    }
+  }
+}
+
+if (isAndroid && window.AndroidMediaSession) {
+  // 同步播放状态到原生 MediaSession
+  audio.addEventListener('play', () => {
+    window.AndroidMediaSession?.updatePlaybackState(true)
+  })
+  
+  audio.addEventListener('pause', () => {
+    window.AndroidMediaSession?.updatePlaybackState(false)
+  })
+
+  // 监听来自原生层的媒体控制事件（蓝牙耳机、锁屏界面等）
+  window.addEventListener('mediacontrol', ((event: CustomEvent<string>) => {
+    const action = event.detail
+    switch (action) {
+      case 'play':
+        usePlayerStore.getState().play()
+        break
+      case 'pause':
+        usePlayerStore.getState().pause()
+        break
+      case 'next':
+        usePlayerStore.getState().next()
+        break
+      case 'prev':
+        usePlayerStore.getState().prev()
+        break
+    }
+  }) as EventListener)
+
+  // 监听播放列表变化，更新媒体元数据
+  usePlayerStore.subscribe((state, prevState) => {
+    const currentItem = state.playlist[state.currentIndex]
+    const prevItem = prevState.playlist[prevState.currentIndex]
+    
+    // 当切换曲目时更新元数据
+    if (currentItem?.title && currentItem.title !== prevItem?.title) {
+      window.AndroidMediaSession?.updateMetadata(currentItem.title)
+    }
+  })
+}
