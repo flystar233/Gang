@@ -3,14 +3,16 @@ import { checkTauriEnv } from '@/utils/platform'
 import type { TauriResponse } from '@/types'
 import { BILIBILI_API_BASE, BILIBILI_SITE_URL, HTTP_TIMEOUT } from '@/constants'
 
+const useDevProxy = import.meta.env.DEV && !checkTauriEnv()
+
 const axiosInstance = axios.create({
-  baseURL: BILIBILI_API_BASE,
+  baseURL: useDevProxy ? '/api/bilibili' : BILIBILI_API_BASE,
   timeout: HTTP_TIMEOUT,
   withCredentials: true,
   headers: {
     'Accept': 'application/json, text/plain, */*',
     'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
     'Referer': BILIBILI_SITE_URL,
     'Origin': BILIBILI_SITE_URL,
   },

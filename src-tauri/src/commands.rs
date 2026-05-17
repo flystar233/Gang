@@ -1,5 +1,5 @@
 //! Tauri 命令模块
-//! 
+//!
 //! 包含所有暴露给前端的 Tauri 命令函数
 
 use crate::constants::{file_ext, INVALID_FILENAME_CHARS};
@@ -9,6 +9,8 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
+use std::sync::Mutex;
+use std::time::{Duration, Instant};
 use tauri::{Emitter, Manager};
 use tauri::WebviewWindow;
 
@@ -16,6 +18,31 @@ use tauri::WebviewWindow;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DownloadProgress {
     pub progress: i32,
+}
+
+/// 请求速率限制 — Bilibili API 两次请求之间至少间隔 350ms，防止触发 WAF/限流
+static LAST_REQUEST_TIME: Mutex<Option<Instant>> = Mutex::new(None);
+const MIN_REQUEST_INTERVAL_MS: u64 = 350;
+
+async fn throttle_request() {
+    let sleep_dur = {
+        let last = LAST_REQUEST_TIME.lock().unwrap();
+        if let Some(prev) = *last {
+            let elapsed = prev.elapsed();
+            let min_interval = Duration::from_millis(MIN_REQUEST_INTERVAL_MS);
+            if elapsed < min_interval {
+                Some(min_interval - elapsed)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    };
+    if let Some(dur) = sleep_dur {
+        tokio::time::sleep(dur).await;
+    }
+    *LAST_REQUEST_TIME.lock().unwrap() = Some(Instant::now());
 }
 
 /// 窗口控制命令：最小化窗口
@@ -60,23 +87,23 @@ pub async fn select_folder(app: tauri::AppHandle) -> Result<Option<String>, Stri
         use tauri_plugin_dialog::DialogExt;
         use std::path::PathBuf;
         use tokio::sync::oneshot;
-        
+
         let home_dir = std::env::var("HOME")
             .ok()
             .map(PathBuf::from)
             .or_else(|| std::env::var("USERPROFILE").ok().map(PathBuf::from));
-        
+
         let (tx, rx) = oneshot::channel();
-        
+
         app.dialog()
             .file()
             .set_directory(home_dir.unwrap_or_else(|| PathBuf::from(".")))
             .pick_folder(move |path| {
                 let _ = tx.send(path);
             });
-        
+
         let path = rx.await.map_err(|e| format!("接收对话框结果失败: {}", e))?;
-        
+
         Ok(path.map(|p| p.to_string()))
     }
     #[cfg(not(desktop))]
@@ -108,11 +135,11 @@ pub async fn download_file(
     } else {
         file_ext::AUDIO
     };
-    
+
     let safe_name = sanitize_filename(&filename) + ext;
-    
+
     let safe_folder = sub_folder.map(|f| sanitize_filename(&f));
-    
+
     let file_path = if let Some(save_path) = save_path {
         let mut target_dir = PathBuf::from(save_path);
         if let Some(folder) = &safe_folder {
@@ -122,7 +149,6 @@ pub async fn download_file(
         target_dir.push(&safe_name);
         target_dir
     } else {
-        // 使用默认下载目录
         let mut download_dir = app.path()
             .app_data_dir()
             .map_err(|e| format!("无法获取应用数据目录: {}", e))?;
@@ -134,41 +160,38 @@ pub async fn download_file(
         download_dir.push(&safe_name);
         download_dir
     };
-    
-    // 下载文件（复用HTTP客户端）
+
     let client = get_http_client().await?;
     let mut response = add_bilibili_headers(client.get(&url))
         .send()
         .await
         .map_err(|e| e.to_string())?;
-    
+
     if !response.status().is_success() {
         return Err("下载失败".to_string());
     }
-    
+
     let total_size = response.content_length().unwrap_or(0);
     let mut file = fs::File::create(&file_path).map_err(|e| e.to_string())?;
     let mut downloaded: u64 = 0;
-    
-    // 发送初始进度
+
     window.emit("download-progress", DownloadProgress { progress: 0 })
         .ok();
-    
+
     while let Some(chunk) = response.chunk().await.map_err(|e| e.to_string())? {
         file.write_all(&chunk).map_err(|e| e.to_string())?;
         downloaded += chunk.len() as u64;
-        
+
         if total_size > 0 {
             let progress = ((downloaded * 100) / total_size) as i32;
             window.emit("download-progress", DownloadProgress { progress })
                 .ok();
         }
     }
-    
-    // 发送完成进度
+
     window.emit("download-progress", DownloadProgress { progress: 100 })
         .ok();
-    
+
     Ok(serde_json::json!({
         "success": true,
         "path": file_path.to_string_lossy().to_string()
@@ -213,8 +236,10 @@ pub async fn http_request(
     headers: Option<std::collections::HashMap<String, String>>,
     params: Option<serde_json::Value>,
 ) -> Result<serde_json::Value, String> {
+    throttle_request().await;
+
     let client = get_http_client().await?;
-    
+
     let method = method.as_deref().unwrap_or("GET");
     let mut request = match method {
         "GET" => client.get(&url),
@@ -223,13 +248,11 @@ pub async fn http_request(
         "DELETE" => client.delete(&url),
         _ => return Err(format!("不支持的 HTTP 方法: {}", method)),
     };
-    
-    // 添加默认请求头
+
     request = add_bilibili_headers(request)
         .header("Accept", "application/json, text/plain, */*")
         .header("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8");
-    
-    // 添加自定义请求头（忽略 Cookie，由 cookie_store 自动管理）
+
     if let Some(custom_headers) = headers {
         for (key, value) in custom_headers {
             if key.to_lowercase() != "cookie" {
@@ -237,8 +260,7 @@ pub async fn http_request(
             }
         }
     }
-    
-    // 添加查询参数（将 JSON Value 转换为字符串 HashMap）
+
     if let Some(query_params_json) = params {
         let mut query_map = std::collections::HashMap::new();
         if let Some(obj) = query_params_json.as_object() {
@@ -255,14 +277,14 @@ pub async fn http_request(
         }
         request = request.query(&query_map);
     }
-    
+
     let response = request
         .send()
         .await
         .map_err(|e| format!("请求失败: {}", e))?;
-    
+
     let status = response.status();
-    
+
     let headers_map: std::collections::HashMap<String, String> = response
         .headers()
         .iter()
@@ -270,17 +292,16 @@ pub async fn http_request(
             (k.to_string(), v.to_str().unwrap_or("").to_string())
         })
         .collect();
-    
+
     let body = response
         .text()
         .await
         .map_err(|e| format!("读取响应失败: {}", e))?;
-    
-    // 尝试解析为 JSON，如果失败则返回文本
+
     let json_value = serde_json::from_str(&body).unwrap_or_else(|_| {
         serde_json::json!({ "text": body })
     });
-    
+
     Ok(serde_json::json!({
         "status": status.as_u16(),
         "headers": headers_map,
@@ -300,8 +321,6 @@ pub async fn proxy_audio(url: String) -> Result<String, String> {
     proxy::proxy_audio(url).await
 }
 
-use std::sync::Mutex;
-
 /// 关闭行为状态
 #[derive(Default)]
 pub struct CloseActionState {
@@ -315,13 +334,13 @@ impl CloseActionState {
             action: Mutex::new("quit".to_string()),
         }
     }
-    
+
     pub fn set(&self, action: String) {
         if let Ok(mut action_guard) = self.action.lock() {
             *action_guard = action;
         }
     }
-    
+
     pub fn get(&self) -> String {
         self.action.lock()
             .map(|a| a.clone())

@@ -45,14 +45,21 @@ function PlayerControls({ onOpenPlaylist, gangType: _externalGangType, onGangTyp
   const volumeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const gangButtonRef = useRef<HTMLDivElement>(null)
   
+  const lastGangClickRef = useRef(0)
+  const GANG_CLICK_COOLDOWN = 1500 // 防止连点触发 Bilibili 速率限制
+
   const handleGangClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!gangButtonRef.current || isLoading) return
-    
+
+    const now = Date.now()
+    if (now - lastGangClickRef.current < GANG_CLICK_COOLDOWN) return
+    lastGangClickRef.current = now
+
     const rect = gangButtonRef.current.getBoundingClientRect()
     const clickX = e.clientX - rect.left
     const buttonWidth = rect.width
     const isLeftHalf = clickX < buttonWidth / 2
-    
+
     if (isLeftHalf) {
       // 点击左边，单口
       const newType: GangType = 'dan'
